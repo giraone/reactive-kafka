@@ -24,11 +24,11 @@ public final class PropertyUtil {
 
     private static Map<String, Object> buildMap(Map<String, String> stringObjectMap, String context) {
         return stringObjectMap.entrySet()
-            .stream()
-            .peek(entry -> LOGGER.info("using spring.kafka.{}.properties.{}", context, entry))
-            .collect(Collectors.toMap(
-                Map.Entry::getKey,
-                Map.Entry::getValue
-            ));
+                .stream()
+                .peek(entry -> LOGGER.info("using spring.kafka.{}.properties.{}", context, entry))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue
+                ));
     }
 }

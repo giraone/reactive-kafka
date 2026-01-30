@@ -29,7 +29,6 @@ management:
 spring:
   application:
     name: 'pipe-test'
-    mode: 'Pipe'
   kafka:
     # Prevent tests from using a local Kafka broker on 9092 (default). The real port is random in EmbeddedKafka.
     bootstrap-servers: 'localhost:65432'

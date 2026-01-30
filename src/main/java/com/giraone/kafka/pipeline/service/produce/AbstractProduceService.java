@@ -22,17 +22,17 @@ public abstract class AbstractProduceService extends AbstractService {
     protected static final Scheduler schedulerForGenerateNumbers = Schedulers.newSingle("generateNumberScheduler", false);
     protected static final Scheduler schedulerForKafkaProduce = Schedulers.newSingle("producerScheduler", false);
 
-    protected final ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate;
+    protected final ReactiveKafkaProducerTemplate<String, String> kafkaSender;
     protected final String topicOutput;
     protected final int maxNumberOfEvents;
 
     protected AbstractProduceService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate
+        ReactiveKafkaProducerTemplate<String, String> kafkaSender
     ) {
         super(applicationProperties, counterService);
-        this.reactiveKafkaProducerTemplate = reactiveKafkaProducerTemplate;
+        this.kafkaSender = kafkaSender;
         this.maxNumberOfEvents = applicationProperties.getProducerVariables().getMaxNumberOfEvents();
         this.topicOutput = applicationProperties.getTopicA();
     }
@@ -63,7 +63,7 @@ public abstract class AbstractProduceService extends AbstractService {
 
     protected Mono<SenderResult<String>> send(SenderRecord<String, String, String> senderRecord) {
 
-        return reactiveKafkaProducerTemplate.send(senderRecord)
+        return kafkaSender.send(senderRecord)
             .doOnNext(senderResult ->
                 counterService.logRateSent(senderResult.recordMetadata().partition(), senderResult.recordMetadata().offset()));
     }

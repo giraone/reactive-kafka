@@ -1,11 +1,13 @@
 package com.giraone.kafka.pipeline.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
+import reactor.kafka.receiver.MicrometerConsumerListener;
 import reactor.kafka.receiver.ReceiverOptions;
 
 import java.util.List;
@@ -24,24 +26,17 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ReceiverOptions<String, String> receiverOptions(ApplicationProperties applicationProperties, KafkaProperties springKafkaProperties) {
+    public ReceiverOptions<String, String> receiverOptions(KafkaProperties springKafkaProperties, MeterRegistry meterRegistry) {
 
-        final Map<String, Object> springConsumerPropertiesObjectMap =
-            springKafkaProperties.getProperties().entrySet()
-                .stream()
-                .peek(entry -> LOGGER.info("using spring.kafka.consumer.properties.{}", entry))
-                .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    Map.Entry::getValue
-                ));
-
+        final Map<String, Object> springConsumerPropertiesObjectMap = springKafkaProperties.buildConsumerProperties();
         final ReceiverOptions<String, String> basicReceiverOptions = ReceiverOptions.create(springConsumerPropertiesObjectMap);
-        // TODO: Missing properties
-        return basicReceiverOptions.subscription(List.of(topicInput));
+        return basicReceiverOptions
+            .consumerListener(new MicrometerConsumerListener(meterRegistry)) // we want standard Kafka metrics
+            .subscription(List.of(topicInput));
     }
 
     @Bean
-    public ReactiveKafkaConsumerTemplate<String, String> reactiveKafkaConsumerTemplate(ReceiverOptions<String, String> kafkaReceiverOptions) {
+    public ReactiveKafkaConsumerTemplate<String, String> kafkaReceiver(ReceiverOptions<String, String> kafkaReceiverOptions) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("pollTimeout={}, maxCommitAttempts={}",
                 kafkaReceiverOptions.pollTimeout(), kafkaReceiverOptions.maxCommitAttempts());
