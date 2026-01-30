@@ -1,0 +1,87 @@
+version: "3.5"
+services:
+
+  produce:
+    image: atleon-kafka:latest
+    hostname: produce
+    ports:
+      - "9081:8080"
+    container_name: produce
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - kafka-1
+    environment:
+      JAVA_OPTS: -XX:InitialRAMPercentage=2 -XX:MaxRAMPercentage=20
+      SPRING_PROFILES_ACTIVE: "docker"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092,kafka-5:9092"
+      # next 5 lines are for SASL_PLAINTEXT with SCRAM
+      SPRING_KAFKA_JAAS_ENABLED: true
+      SPRING_KAFKA_JAAS_CONTROL_FLAG: required
+      SPRING_KAFKA_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
+      SPRING_APPLICATION_NAME: produce
+      SPRING_KAFKA_CLIENT_ID: produce
+      SPRING_KAFKA_CONSUMER_GROUP_ID: produce
+      APPLICATION_MODE: ProduceFlatMap # ProduceFlatMap or ProduceConcatMap
+      APPLICATION_TOPIC_A: a2
+      APPLICATION_PRODUCE_INTERVAL: 1ms
+      APPLICATION_PRODUCER_VARIABLES_MAX_NUMBER_OF_EVENTS: 10000
+
+  pipe:
+    image: atleon-kafka:latest
+    hostname: pipe
+    ports:
+      - "9082:8080"
+    container_name: pipe
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - kafka-1
+    environment:
+      JAVA_OPTS: -XX:InitialRAMPercentage=2 -XX:MaxRAMPercentage=20
+      SPRING_PROFILES_ACTIVE: "docker"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092,kafka-5:9092"
+      # next 5 lines are for SASL_PLAINTEXT with SCRAM
+      SPRING_KAFKA_JAAS_ENABLED: true
+      SPRING_KAFKA_JAAS_CONTROL_FLAG: required
+      SPRING_KAFKA_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
+      SPRING_APPLICATION_NAME: pipe
+      SPRING_KAFKA_CLIENT_ID: pipe
+      SPRING_KAFKA_CONSUMER_GROUP_ID: pipe
+      APPLICATION_MODE: PipeReceiveSend # PipeReceiveSend or PipePartitioned
+      APPLICATION_TOPIC_A: a2
+      APPLICATION_TOPIC_B: b2
+      APPLICATION_PROCESSING_TIME: 10ms
+
+  consume:
+    image: atleon-kafka:latest
+    hostname: consume
+    ports:
+      - "9083:8080"
+    container_name: consume
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - kafka-1
+    environment:
+      JAVA_OPTS: -XX:InitialRAMPercentage=2 -XX:MaxRAMPercentage=20
+      SPRING_PROFILES_ACTIVE: "docker"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092,kafka-5:9092"
+      # next 5 lines are for SASL_PLAINTEXT with SCRAM
+      SPRING_KAFKA_JAAS_ENABLED: true
+      SPRING_KAFKA_JAAS_CONTROL_FLAG: required
+      SPRING_KAFKA_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+      SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
+      SPRING_APPLICATION_NAME: consume
+      SPRING_KAFKA_CLIENT_ID: consume
+      SPRING_KAFKA_CONSUMER_GROUP_ID: consume
+      APPLICATION_MODE: ConsumeSampled # ConsumeDefault or ConsumeSampled
+      APPLICATION_TOPIC_B: b2
+
+networks:
+  jobs:

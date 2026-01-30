@@ -1,0 +1,17 @@
+version: "3.5"
+services:
+  kafbat:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    hostname: kafbat
+    container_name: kafbat
+    restart: unless-stopped
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    volumes:
+      - ./kafbat/kafkaui-dynamic-config-docker.yaml:/etc/kafkaui/dynamic_config.yaml
+    ports:
+      - "7778:8080"
+    depends_on:
+      - kafka-1
+networks:
+  jobs:

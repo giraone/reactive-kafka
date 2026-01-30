@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+export SERVER_PORT=9081
+export LOGGING_LEVEL_ROOT=INFO
+export LOGGING_LEVEL_COM_GIRAONE=INFO
+export SPRING_APPLICATION_NAME=produce
+export SPRING_KAFKA_CLIENT_ID=${SPRING_APPLICATION_NAME}
+# ProduceFlatMap,ProduceConcatMap
+export APPLICATION_MODE=${1:-ProduceFlatMap}
+export APPLICATION_TOPIC_A=${2:-a1}
+export APPLICATION_PRODUCE_INTERVAL=${3:-1ms}
+export APPLICATION_PRODUCER_VARIABLES_MAX_NUMBER_OF_EVENTS=${4:-1000}
+# Only for ProduceWithDuplicatesService
+export APPLICATION_PRODUCER_VARIABLES_DUPLICATE_PERCENTAGE=${5:-0.0}
+
+java -jar target/atleon-kafka.jar

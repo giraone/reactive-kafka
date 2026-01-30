@@ -1,0 +1,20 @@
+# See https://ui.docs.kafbat.io/configuration
+auth:
+  type: DISABLED # DISABLED, LOGIN_FORM
+kafka:
+  clusters:
+    - name: docker-cluster
+      readOnly: false
+      bootstrapServers: 'kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092,kafka-5:9092'
+      properties:
+        security.protocol: SASL_PLAINTEXT
+        sasl.mechanism: SCRAM-SHA-512
+        sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin-secret";
+      producerProperties: {}
+      consumerProperties: {}
+      kafkaConnect: []
+      masking: []
+      serde: []
+rbac:
+  roles: []
+webclient: {}

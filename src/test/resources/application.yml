@@ -1,0 +1,46 @@
+server:
+  # Graceful shutdown feature
+  # By default, the value of this property is equal to immediate, which means the server gets shut down immediately.
+  # see: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.3-Release-Notes#graceful-shutdown
+  shutdown: graceful
+
+logging:
+  level:
+    root: WARN
+    com.giraone: DEBUG
+    # for debugging producer/acknowledges set this to DEBUG
+    org.apache.kafka.clients.producer.internals: WARN
+    # set the 4 lines to error to suppress large config list output on startup
+    org.apache.kafka.common.config.AbstractConfig: ERROR
+    org.apache.kafka.clients.admin.AdminClientConfig: ERROR
+    org.apache.kafka.clients.producer.ProducerConfig: ERROR
+    org.apache.kafka.clients.consumer.ConsumerConfig: ERROR
+    # Suppress "Node 0 disconnected." (INFO) messages and "Broker may not be available" messages (WARN).
+    org.apache.kafka.clients.NetworkClient: ERROR
+    # Ignore INFO/DEBUG for Spring test classes
+    org.springframework.test: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: [ 'health', 'loggers', 'metrics', 'prometheus' ]
+
+spring:
+  application:
+    name: 'pipe-test'
+    mode: 'Pipe'
+  kafka:
+    # Prevent tests from using a local Kafka broker on 9092 (default). The real port is random in EmbeddedKafka.
+    bootstrap-servers: 'localhost:65432'
+    consumer:
+      client-id: unit-test
+      group-id: unit-test
+      auto-offset-reset: earliest
+
+application:
+  mode: to-be-overwritten-by-concrete-test
+  topic-a: 'atest'
+  topic-b: 'btest'
+  producer-variables:
+    max-number-of-events: 10

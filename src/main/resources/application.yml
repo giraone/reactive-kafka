@@ -1,0 +1,48 @@
+server:
+  # Graceful shutdown feature
+  # By default, the value of this property is equal to immediate, which means the server gets shut down immediately.
+  # see: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.3-Release-Notes#graceful-shutdown
+  shutdown: graceful
+
+logging:
+  level:
+    root: WARN
+    com.giraone: INFO
+    # set the 4 lines to warn to suppress large config list output on startup
+    org.apache.kafka.common.config.AbstractConfig: WARN
+    org.apache.kafka.clients.admin.AdminClientConfig: WARN
+    org.apache.kafka.clients.producer.ProducerConfig: WARN
+    org.apache.kafka.clients.consumer.ConsumerConfig: WARN
+  pattern:
+    dateformat: 'yyyy-MM-dd HH:mm:ss.SSS,Europe/Berlin'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: [ 'health', 'loggers', 'metrics', 'prometheus' ]
+
+# to be used when running the service locally (e.g. in IDE), but using the subsystems like Kafka within Docker
+spring:
+  application:
+    name: pipeline
+  kafka:
+    bootstrap-servers: 'localhost:9991,localhost:9992,localhost:9993,localhost:9994,localhost:9995'
+    client-id: to-be-overwritten-by-env-variable
+    jaas:
+      enabled: true
+    security:
+      protocol: SASL_PLAINTEXT
+    properties:
+      sasl:
+        mechanism: SCRAM-SHA-512
+        jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username='user1' password='user1-secret';
+    consumer:
+      group-id: to-be-overwritten-by-env-variable
+      auto-offset-reset: earliest
+
+application:
+  topic-a: 'a1'
+  topic-b: 'b1'
+  producer-variables:
+    max-number-of-events: 10000

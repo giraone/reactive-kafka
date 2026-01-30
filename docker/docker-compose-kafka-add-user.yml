@@ -1,0 +1,30 @@
+version: "3.5"
+services:
+
+  zookeeper-add-kafka-users:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-enterprise-kafka:7.6.6
+    container_name: "zookeeper-add-kafka-users"
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/zk-1/secrets:/etc/kafka/secrets
+    networks:
+      - jobs
+    depends_on:
+      - zk-1
+    # Will create 5 users (broker, metricsreporter, c3, admin, user1)
+    command: "bash -c 'echo Waiting for Zookeeper to be ready... && \
+    	cub zk-ready zk-1:2181 120 && \
+        kafka-configs --zookeeper zk-1:2181 --alter --add-config 'SCRAM-SHA-512=[password=broker-secret]' --entity-type users --entity-name broker && \
+        kafka-configs --zookeeper zk-1:2181 --alter --add-config 'SCRAM-SHA-512=[password=metricsreporter-secret]' --entity-type users --entity-name metricsreporter && \
+        kafka-configs --zookeeper zk-1:2181 --alter --add-config 'SCRAM-SHA-512=[password=c3-secret]' --entity-type users --entity-name c3 && \
+        kafka-configs --zookeeper zk-1:2181 --alter --add-config 'SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin && \
+        kafka-configs --zookeeper zk-1:2181 --alter --add-config 'SCRAM-SHA-512=[password=user1-secret]' --entity-type users --entity-name user1 && \
+        kafka-acls --authorizer-properties zookeeper.connect=zk-1:2181 --add --allow-principal User:admin --cluster --topic \\* --group \\* --operation All && \
+        kafka-acls --authorizer-properties zookeeper.connect=zk-1:2181 --add --allow-principal User:user1 --group \\* --operation All && \
+        kafka-acls --authorizer-properties zookeeper.connect=zk-1:2181 --add --allow-principal User:user1 --topic \\* --operation Read --operation Write '"
+    environment:
+      KAFKA_BROKER_ID: ignored
+      KAFKA_ZOOKEEPER_CONNECT: ignored
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/zookeeper-client-jaas.conf
+
+networks:
+  jobs:

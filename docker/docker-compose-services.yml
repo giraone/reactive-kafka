@@ -1,0 +1,260 @@
+version: "3.5"
+services:
+  zk-1:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-zookeeper:7.6.6
+    hostname: zk-1
+    ports:
+      - "2181:2181"
+      - "9870:9870"
+    container_name: zk-1
+    restart: unless-stopped
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/zk-1/log:/var/lib/zookeeper/log
+      - ${CONTAINER_DATA:-./data}/jobs/zk-1/data:/var/lib/zookeeper/data
+      - ${CONTAINER_DATA:-./data}/jobs/zk-1/secrets:/etc/kafka/secrets
+    networks:
+      - jobs
+    environment:
+      KAFKA_JMX_PORT: 9870
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: "zk-1:2888:3888"
+      ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: "INFO"
+      # ZOOKEEPER_QUORUM_AUTH_ENABLE_SASL: "false"
+      # ZOOKEEPER_QUORUM_AUTH_SERVER_REQUIRE_SASL: "false"
+      # ZOOKEEPER_QUORUM_AUTH_LEARNER_REQUIRE_SASL: "false"
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/zookeeper-server-jaas.conf
+        -Dquorum.auth.enableSasl=true
+        -Dquorum.auth.learnerRequireSasl=true
+        -Dquorum.auth.serverRequireSasl=true
+        -Dquorum.cnxn.threads.size=20
+        -Dzookeeper.authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+        -Dzookeeper.authProvider.2=org.apache.zookeeper.server.auth.DigestAuthenticationProvider
+        -DjaasLoginRenew=3600000
+        -DrequireClientAuthScheme=sasl
+        -Dquorum.auth.learner.loginContext=QuorumLearner
+        -Dquorum.auth.server.loginContext=QuorumServer
+        -Djute.maxbuffer=5000
+        # The above value is mainly to create extraordinary situations, where the broker stop slowly
+
+  kafka-1:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-enterprise-kafka:7.6.6
+    hostname: kafka-1
+    ports:
+      - "9991:9092"
+      - "9871:9871"
+    container_name: kafka-1
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - zk-1
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-1/data:/var/lib/kafka/data
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-1/secrets:/etc/kafka/secrets
+    environment:
+      KAFKA_JMX_PORT: 9871
+      KAFKA_BROKER_ID: 101
+      KAFKA_ZOOKEEPER_CONNECT: "zk-1:2181"
+      KAFKA_ZOOKEEPER_SASL_ENABLED: "true"
+      KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "DOCKER_INSIDE:SASL_PLAINTEXT,DOCKER_HOST:SASL_PLAINTEXT"
+      KAFKA_LISTENERS: "DOCKER_INSIDE://0.0.0.0:9092,DOCKER_HOST://localhost:9991"
+      KAFKA_ADVERTISED_LISTENERS: "DOCKER_INSIDE://kafka-1:9092,DOCKER_HOST://localhost:9991"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "DOCKER_INSIDE"
+      KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-512"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: "PLAIN"
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_SUPER_USERS: "User:broker;User:metricsreporter;User:c3"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"
+      KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO,kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker-jaas.conf
+      # -Djute.maxbuffer=5000
+      # The above value is mainly to create extraordinary situations, where the broker stops slowly
+      #      KAFKA_OPTS: -Dzookeeper.sasl.client=true
+      #        -Dzookeeper.sasl.clientconfig=Client
+      #        -Djava.security.auth.login.config=/etc/kafka/secrets/broker-jaas.conf
+      # Needs more setup
+      # KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+      #CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      #CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092,kafka-5:9092"
+      #CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+      #CONFLUENT_METRICS_REPORTER_SASL_MECHAISM: "SCRAM-SHA-512"
+
+  kafka-2:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-enterprise-kafka:7.6.6
+    hostname: kafka-2
+    ports:
+      - "9992:9092"
+      - "9872:9871"
+    container_name: kafka-2
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - zk-1
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-2/data:/var/lib/kafka/data
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-2/secrets:/etc/kafka/secrets
+    environment:
+      KAFKA_JMX_PORT: 9871
+      KAFKA_BROKER_ID: 102
+      KAFKA_ZOOKEEPER_CONNECT: "zk-1:2181"
+      KAFKA_ZOOKEEPER_SASL_ENABLED: "true"
+      KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "DOCKER_INSIDE:SASL_PLAINTEXT,DOCKER_HOST:SASL_PLAINTEXT"
+      KAFKA_LISTENERS: "DOCKER_INSIDE://0.0.0.0:9092,DOCKER_HOST://localhost:9992"
+      KAFKA_ADVERTISED_LISTENERS: "DOCKER_INSIDE://kafka-2:9092,DOCKER_HOST://localhost:9992"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "DOCKER_INSIDE"
+      KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-512"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: "PLAIN"
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_SUPER_USERS: "User:broker;User:metricsreporter;User:c3"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"
+      KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO,kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker-jaas.conf
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+
+  kafka-3:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-enterprise-kafka:7.6.6
+    hostname: kafka-3
+    ports:
+      - "9993:9092"
+      - "9873:9871"
+    container_name: kafka-3
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - zk-1
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-3/data:/var/lib/kafka/data
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-3/secrets:/etc/kafka/secrets
+    environment:
+      KAFKA_JMX_PORT: 9871
+      KAFKA_BROKER_ID: 103
+      KAFKA_ZOOKEEPER_CONNECT: "zk-1:2181"
+      KAFKA_ZOOKEEPER_SASL_ENABLED: "true"
+      KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "DOCKER_INSIDE:SASL_PLAINTEXT,DOCKER_HOST:SASL_PLAINTEXT"
+      KAFKA_LISTENERS: "DOCKER_INSIDE://0.0.0.0:9092,DOCKER_HOST://localhost:9993"
+      KAFKA_ADVERTISED_LISTENERS: "DOCKER_INSIDE://kafka-3:9092,DOCKER_HOST://localhost:9993"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "DOCKER_INSIDE"
+      KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-512"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: "PLAIN"
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_SUPER_USERS: "User:broker;User:metricsreporter;User:c3"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"
+      KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO,kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker-jaas.conf
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+
+  kafka-4:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-enterprise-kafka:7.6.6
+    hostname: kafka-4
+    ports:
+      - "9994:9092"
+      - "9874:9871"
+    container_name: kafka-4
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - zk-1
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-4/data:/var/lib/kafka/data
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-4/secrets:/etc/kafka/secrets
+    environment:
+      KAFKA_JMX_PORT: 9871
+      KAFKA_BROKER_ID: 104
+      KAFKA_ZOOKEEPER_CONNECT: "zk-1:2181"
+      KAFKA_ZOOKEEPER_SASL_ENABLED: "true"
+      KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "DOCKER_INSIDE:SASL_PLAINTEXT,DOCKER_HOST:SASL_PLAINTEXT"
+      KAFKA_LISTENERS: "DOCKER_INSIDE://0.0.0.0:9092,DOCKER_HOST://localhost:9994"
+      KAFKA_ADVERTISED_LISTENERS: "DOCKER_INSIDE://kafka-4:9092,DOCKER_HOST://localhost:9994"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "DOCKER_INSIDE"
+      KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-512"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: "PLAIN"
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_SUPER_USERS: "User:broker;User:metricsreporter;User:c3"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"
+      KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO,kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker-jaas.conf
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+
+  kafka-5:
+    image: packages.repo.dvint.de/docker-internet-mirror/confluentinc/cp-enterprise-kafka:7.6.6
+    hostname: kafka-5
+    ports:
+      - "9995:9092"
+      - "9875:9871"
+    container_name: kafka-5
+    restart: unless-stopped
+    networks:
+      - jobs
+    depends_on:
+      - zk-1
+    volumes:
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-5/data:/var/lib/kafka/data
+      - ${CONTAINER_DATA:-./data}/jobs/kafka-5/secrets:/etc/kafka/secrets
+    environment:
+      KAFKA_JMX_PORT: 9871
+      KAFKA_BROKER_ID: 105
+      KAFKA_ZOOKEEPER_CONNECT: "zk-1:2181"
+      KAFKA_ZOOKEEPER_SASL_ENABLED: "true"
+      KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "DOCKER_INSIDE:SASL_PLAINTEXT,DOCKER_HOST:SASL_PLAINTEXT"
+      KAFKA_LISTENERS: "DOCKER_INSIDE://0.0.0.0:9092,DOCKER_HOST://localhost:9995"
+      KAFKA_ADVERTISED_LISTENERS: "DOCKER_INSIDE://kafka-5:9092,DOCKER_HOST://localhost:9995"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "DOCKER_INSIDE"
+      KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-512"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: "PLAIN"
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_SUPER_USERS: "User:broker;User:metricsreporter;User:c3"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"
+      KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO,kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker-jaas.conf
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+
+networks:
+  jobs:
