@@ -1,8 +1,8 @@
 # Reactive Spring Boot Kafka using atleon-kafka or reactor-kafka
 
 There are two implementations of Reactive Kafka clients for Spring Boot:
-- [atleon-kafka]() - GIT branch **main** and **atleon**
-- [reactor-kafka]() - GIT branch **reactor**
+- [atleon-kafka](https://github.com/atleon/atleon) - GIT branch **main** and **atleon**
+- [reactor-kafka](https://github.com/reactor/reactor-kafka) - GIT branch **reactor**
 
 Both implementations can be used and compared in a *Spring Boot* based application setup with Kafka brokers provided by *Docker Compose*.
 
