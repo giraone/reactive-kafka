@@ -49,7 +49,7 @@ public abstract class AbstractConsumeService extends AbstractService {
     }
 
     protected Mono<KafkaReceiverRecord<String, String>> process(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
+        final ConsumerRecord<String, String> consumerRecord = receiverRecord.consumerRecord();
         // Simple consumer, that only logs
         counterService.logRateReceived(consumerRecord.partition(), consumerRecord.offset());
         // A real consumer would do some meaningful reactive work here, e.g. write the record to a database using R2DBC
@@ -57,7 +57,7 @@ public abstract class AbstractConsumeService extends AbstractService {
     }
 
     protected Mono<Void> manualCommit(KafkaReceiverRecord<String, String> receiverRecord) {
-        return Mono.fromRunnable(receiverRecord::acknowledge)
+        return Mono.fromRunnable(receiverRecord::acknowledge) // commit vs. acknowledge
             .doOnSuccess(unused -> logCommited(receiverRecord))
             .doOnError(this::logCommitError).then();
     }

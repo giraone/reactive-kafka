@@ -26,7 +26,7 @@ public abstract class AbstractService implements CommandLineRunner {
     protected final CounterService counterService;
 
     protected AbstractService(ApplicationProperties applicationProperties,
-                           CounterService counterService) {
+                              CounterService counterService) {
         this.applicationProperties = applicationProperties;
         this.counterService = counterService;
     }
@@ -63,33 +63,34 @@ public abstract class AbstractService implements CommandLineRunner {
     }
 
     protected void logReceived(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
+        final ConsumerRecord<String, String> consumerRecord = receiverRecord.consumerRecord();
         final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+        final long offset = consumerRecord.offset();
         counterService.logRateReceived(partition, offset);
         LOGGER.debug("<<< {} {} {} {} {}", consumerRecord.topic(), partition, consumerRecord.offset(), offset, consumerRecord.value());
     }
 
     protected void logProcessed(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
+        final ConsumerRecord<String, String> consumerRecord = receiverRecord.consumerRecord();
         final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+        final long offset = consumerRecord.offset();
         counterService.logRateProcessed();
         LOGGER.debug("°°° {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
     }
 
     protected void logSent(KafkaSenderResult<KafkaReceiverRecord<String, String>> senderResult) {
-        final ConsumerRecord<String,String> consumerRecord = senderResult.correlationMetadata().consumerRecord();
-        final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+        final String topic = senderResult.recordMetadata().get().topic();
+        final int partition = senderResult.recordMetadata().get().partition();
+        final long offset = senderResult.recordMetadata().get().offset();
         counterService.logRateSent(partition, offset);
-        LOGGER.debug(">>> {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
+        final ConsumerRecord<String, String> consumerRecord = senderResult.correlationMetadata().consumerRecord();
+        LOGGER.debug(">>> {} {} {} {} {}", topic, partition, offset, consumerRecord.key(), consumerRecord.value());
     }
 
     protected void logCommited(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
+        final ConsumerRecord<String, String> consumerRecord = receiverRecord.consumerRecord();
         final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+        final long offset = consumerRecord.offset();
         counterService.logRateCommitted(partition, offset);
         LOGGER.debug("### {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
     }

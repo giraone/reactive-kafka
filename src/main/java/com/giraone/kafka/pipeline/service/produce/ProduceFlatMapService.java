@@ -13,9 +13,9 @@ public class ProduceFlatMapService extends AbstractProduceService {
     public ProduceFlatMapService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        KafkaSender<String, String> reactiveKafkaProducerTemplate
+        KafkaSender<String, String> kafkaSender
     ) {
-        super(applicationProperties, counterService, reactiveKafkaProducerTemplate);
+        super(applicationProperties, counterService, kafkaSender);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ public class ProduceFlatMapService extends AbstractProduceService {
             })
             .doOnError(e -> counterService.logError("ProduceFlatMapService failed!", e))
             .subscribe(null, counterService::logMainLoopError, () -> LOGGER.info("Finished producing {} events to {} after {} seconds",
-                    maxNumberOfEvents, topicOutput, (System.currentTimeMillis() - start) / 1000L));
+                maxNumberOfEvents, topicOutput, (System.currentTimeMillis() - start) / 1000L));
         counterService.logMainLoopStarted(getClass().getSimpleName());
     }
 }

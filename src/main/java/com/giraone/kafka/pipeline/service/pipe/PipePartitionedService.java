@@ -14,7 +14,6 @@ public class PipePartitionedService extends AbstractPipeService {
         CounterService counterService,
         KafkaSender<String, String> kafkaSender,
         KafkaReceiver<String, String> kafkaReceiver
-
     ) {
         super(applicationProperties, counterService, kafkaSender, kafkaReceiver);
     }

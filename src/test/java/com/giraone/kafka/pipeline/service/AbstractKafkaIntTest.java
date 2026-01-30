@@ -1,8 +1,6 @@
 package com.giraone.kafka.pipeline.service;
 
-import io.atleon.kafka.KafkaSender;
-import io.atleon.kafka.KafkaSenderRecord;
-import io.atleon.kafka.KafkaSenderResult;
+import com.giraone.kafka.pipeline.KafkaPipelineApplication;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
@@ -14,6 +12,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -27,7 +27,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
-import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
 import java.time.Duration;
@@ -61,18 +60,19 @@ public abstract class AbstractKafkaIntTest {
         .withReuse(false);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractKafkaIntTest.class);
-    private static final int DEFAULT_TEST_TIMEOUT_MS = 20_000;
 
-    protected int partitions = 2;
-    protected final List<List<String>> receivedMessagesPerPartition = new ArrayList<>(partitions);
-    protected final List<List<ConsumerRecord<String, String>>> receivedRecordsPerPartition = new ArrayList<>(partitions);
-    protected long receiveTimeoutMillis = DEFAULT_TEST_TIMEOUT_MS;
-    protected long requestTimeoutMillis = 3000;
-    protected long sessionTimeoutMillis = 12000;
-    protected long heartbeatIntervalMillis = 3000;
+    protected static final long DEFAULT_TEST_TIMEOUT_MS = 20000;
+    protected static final long REQUEST_TIMEOUT_MILLIS = 3000;
+    protected static final long SESSION_TIMEOUT_MILLIS = 12000;
+    protected static final long HEARTBEAT_INTERVAL_MILLIS = 3000;
+    protected static final int PARTITIONS = 2;
+
+    protected final List<List<String>> receivedMessagesPerPartition = new ArrayList<>(PARTITIONS);
+    protected final List<List<ConsumerRecord<String, String>>> receivedRecordsPerPartition = new ArrayList<>(PARTITIONS);
+
 
     @Autowired
-    KafkaSender<String, String> kafkaSender;
+    KafkaPipelineApplication kafkaPipelineApplication; // We need a bean to wait for context startup
 
     @DynamicPropertySource
     protected static void kafkaProperties(DynamicPropertyRegistry registry) {
@@ -113,7 +113,7 @@ public abstract class AbstractKafkaIntTest {
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
         props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
-        props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(requestTimeoutMillis));
+        props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(REQUEST_TIMEOUT_MILLIS));
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -126,8 +126,8 @@ public abstract class AbstractKafkaIntTest {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(sessionTimeoutMillis));
-        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(heartbeatIntervalMillis));
+        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(SESSION_TIMEOUT_MILLIS));
+        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(HEARTBEAT_INTERVAL_MILLIS));
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -142,7 +142,7 @@ public abstract class AbstractKafkaIntTest {
         // Subscribe to the topic
         consumer.subscribe(Collections.singletonList(topic));
         // Do an initial poll to join the group and get the assignment
-        consumer.poll(Duration.ofMillis(requestTimeoutMillis));
+        consumer.poll(Duration.ofMillis(REQUEST_TIMEOUT_MILLIS));
         return consumer;
     }
 
@@ -154,7 +154,7 @@ public abstract class AbstractKafkaIntTest {
                 Collections.singletonMap(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers())
             )
         ) {
-            adminClient.createTopics(List.of(new NewTopic(topic, partitions, (short) 1)))
+            adminClient.createTopics(List.of(new NewTopic(topic, PARTITIONS, (short) 1)))
                 .all()
                 .get(DEFAULT_TEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -170,10 +170,10 @@ public abstract class AbstractKafkaIntTest {
     protected void resetMessages() {
         receivedMessagesPerPartition.clear();
         receivedRecordsPerPartition.clear();
-        for (int i = 0; i < partitions; i++) {
+        for (int i = 0; i < PARTITIONS; i++) {
             receivedMessagesPerPartition.add(new ArrayList<>());
         }
-        for (int i = 0; i < partitions; i++) {
+        for (int i = 0; i < PARTITIONS; i++) {
             this.receivedRecordsPerPartition.add(new ArrayList<>());
         }
     }
@@ -195,7 +195,7 @@ public abstract class AbstractKafkaIntTest {
         }
         int readAsMany = expectedCount != null ? expectedCount : 1_000;
         int receivedCount = 0;
-        long endTimeMillis = System.currentTimeMillis() + receiveTimeoutMillis;
+        long endTimeMillis = System.currentTimeMillis() + DEFAULT_TEST_TIMEOUT_MS;
         while (receivedCount < readAsMany && System.currentTimeMillis() < endTimeMillis) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1));
             records.forEach(this::onReceive);
@@ -209,12 +209,15 @@ public abstract class AbstractKafkaIntTest {
         }
     }
 
-    protected Mono<KafkaSenderResult<Object>> send(String topic, Tuple2<String, String> message) {
+    protected RecordMetadata send(String topic, Tuple2<String, String> message) throws Exception {
 
-        KafkaSenderRecord<String, String, Object> kafkaSenderRecord = KafkaSenderRecord.create(
-            topic, message.getT1(), message.getT2(), null);
-        return kafkaSender.send(kafkaSenderRecord)
-            .doOnSuccess(senderResult -> LOGGER.info("Sent message with key={} to topic {}", message.getT1(), topic));
+        try (KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(producerProps(getClientId()))) {
+            ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, message.getT1(), message.getT2());
+            RecordMetadata recordMetadata = kafkaProducer.send(producerRecord).get(1, TimeUnit.MINUTES);
+            LOGGER.info("Sent message with key={} to topic={} with partition={} and offset={}",
+                message.getT1(), topic, recordMetadata.partition(), recordMetadata.offset());
+            return recordMetadata;
+        }
     }
 
     protected void sendMessagesAndAssertReceived(String topic, Consumer<String, String> consumer,
@@ -222,12 +225,10 @@ public abstract class AbstractKafkaIntTest {
                                                  List<Tuple2<String, String>> expectedMessages) throws Exception {
 
         for (Tuple2<String, String> message : messagesToSend) {
-            send(topic, message)
-                .doOnSuccess(senderResult -> LOGGER.info("Sent message with key={} to topic {}", message.getT1(), topic))
-                .block();
+            send(topic, message);
         }
         // We have to wait some time. We use at least the producer request timeout.
-        Thread.sleep(requestTimeoutMillis);
+        Thread.sleep(REQUEST_TIMEOUT_MILLIS);
         assertReceived(consumer, expectedMessages);
     }
 

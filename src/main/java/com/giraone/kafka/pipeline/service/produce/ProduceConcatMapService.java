@@ -13,9 +13,9 @@ public class ProduceConcatMapService extends AbstractProduceService {
     public ProduceConcatMapService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        KafkaSender<String, String> reactiveKafkaProducerTemplate
+        KafkaSender<String, String> kafkaSender
     ) {
-        super(applicationProperties, counterService, reactiveKafkaProducerTemplate);
+        super(applicationProperties, counterService, kafkaSender);
     }
 
     //------------------------------------------------------------------------------------------------------------------

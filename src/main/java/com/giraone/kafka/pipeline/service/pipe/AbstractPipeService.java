@@ -33,9 +33,9 @@ public abstract class AbstractPipeService extends AbstractService {
     protected final Scheduler scheduler;
 
     protected AbstractPipeService(ApplicationProperties applicationProperties,
-                               CounterService counterService,
-                               KafkaSender<String, String> kafkaSender,
-                               KafkaReceiver<String, String> kafkaReceiver
+                                  CounterService counterService,
+                                  KafkaSender<String, String> kafkaSender,
+                                  KafkaReceiver<String, String> kafkaReceiver
     ) {
         super(applicationProperties, counterService);
         this.kafkaSender = kafkaSender;
@@ -88,7 +88,7 @@ public abstract class AbstractPipeService extends AbstractService {
     }
 
     protected Mono<Void> manualCommit(KafkaSenderResult<KafkaReceiverRecord<String, String>> senderResult) {
-        return Mono.fromRunnable(() -> senderResult.correlationMetadata().acknowledge())
+        return Mono.fromRunnable(() -> senderResult.correlationMetadata().acknowledge()) // commit vs. acknowledge
             .doOnSuccess(unused -> logCommited(senderResult.correlationMetadata()))
             .doOnError(this::logCommitError).then();
     }

@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -42,8 +40,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Generated
 public class SpringKafkaProperties {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpringKafkaProperties.class);
-
     /**
      * Kafka cluster. Default = "localhost:9092".
      */
@@ -70,8 +66,8 @@ public class SpringKafkaProperties {
 
     public String buildClientId(String suffix) {
         return suffix != null && !suffix.trim().isEmpty()
-                ? (clientId + "-" + suffix.trim())
-                : clientId;
+            ? (clientId + "-" + suffix.trim())
+            : clientId;
     }
 
     @Setter

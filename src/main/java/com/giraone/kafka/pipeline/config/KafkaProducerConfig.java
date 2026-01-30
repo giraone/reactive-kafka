@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
 
@@ -25,30 +24,23 @@ public class KafkaProducerConfig {
     public KafkaSender<String, String> kafkaSender(SpringKafkaProperties springKafkaProperties) {
 
         final KafkaProperties.Producer springProducerProperties = springKafkaProperties.getProducer();
-        final Map<String, Object> springProducerPropertiesObjectMap =
-                springProducerProperties.getProperties().entrySet()
-                        .stream()
-                        .peek(entry -> LOGGER.info("using spring.kafka.producer.properties.{}", entry))
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue
-                        ));
+        final Map<String, Object> springProducerPropertiesObjectMap = PropertyUtil.buildProducerProperties(springProducerProperties.getProperties());
         final KafkaSenderOptions.Builder<String, String> builder = KafkaSenderOptions.<String, String>newBuilder()
-                .producerProperties(springProducerPropertiesObjectMap)
-                .producerProperty(BOOTSTRAP_SERVERS_CONFIG, springKafkaProperties.getBootstrapServers())
-                .producerProperty(CLIENT_ID_CONFIG, springKafkaProperties.buildClientId())
-                .producerProperty(KEY_SERIALIZER_CLASS_CONFIG, springProducerProperties.getKeySerializer().getName())
-                .producerProperty(VALUE_SERIALIZER_CLASS_CONFIG, springProducerProperties.getValueSerializer().getName())
-                .producerProperty(ACKS_CONFIG, springProducerProperties.getAcks() != null
-                        ? springProducerProperties.getAcks()
-                        : "all"
-                )
-                .producerProperty(BATCH_SIZE_CONFIG, springProducerProperties.getBatchSize() != null
-                        ? (int) springProducerProperties.getBatchSize().toBytes()
-                        : 16384
-                )
-                // Metrics reporter
-                .producerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());
+            .producerProperties(springProducerPropertiesObjectMap)
+            .producerProperty(BOOTSTRAP_SERVERS_CONFIG, springKafkaProperties.getBootstrapServers())
+            .producerProperty(CLIENT_ID_CONFIG, springKafkaProperties.buildClientId())
+            .producerProperty(KEY_SERIALIZER_CLASS_CONFIG, springProducerProperties.getKeySerializer().getName())
+            .producerProperty(VALUE_SERIALIZER_CLASS_CONFIG, springProducerProperties.getValueSerializer().getName())
+            .producerProperty(ACKS_CONFIG, springProducerProperties.getAcks() != null
+                ? springProducerProperties.getAcks()
+                : "all"
+            )
+            .producerProperty(BATCH_SIZE_CONFIG, springProducerProperties.getBatchSize() != null
+                ? (int) springProducerProperties.getBatchSize().toBytes()
+                : 16384
+            )
+            // Metrics reporter
+            .producerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());
 
         if (springKafkaProperties.getJaas().isEnabled()) {
             final SpringKafkaProperties.Properties properties = springKafkaProperties.getProperties();
@@ -56,9 +48,9 @@ public class KafkaProducerConfig {
             final String saslJaasConfig = saslProperties.getJaas().getConfig();
             LOGGER.debug("security.protocol={}, sasl.mechanism={}", springKafkaProperties.getSecurity().getProtocol(), saslProperties.getMechanism());
             builder
-                    .producerProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, springKafkaProperties.getSecurity().getProtocol())
-                    .producerProperty("sasl.mechanism", saslProperties.getMechanism())
-                    .producerProperty("sasl.jaas.config", saslJaasConfig);
+                .producerProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, springKafkaProperties.getSecurity().getProtocol())
+                .producerProperty("sasl.mechanism", saslProperties.getMechanism())
+                .producerProperty("sasl.jaas.config", saslJaasConfig);
         }
 
         final KafkaSenderOptions<String, String> kafkaSenderOptions = builder.build();
