@@ -34,3 +34,7 @@ docker-compose -f docker-compose-apps.yml up -d
 
 - [application.yml](src/main/resources/application.yml)
 - [pom.xml](pom.xml)
+
+## Tests
+
+The unit tests are Spring-Kafka-, Reactor-Kafka and Atleon-Kafka-free and based on `org.apache.kafka`.
