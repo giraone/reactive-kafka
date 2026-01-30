@@ -2,10 +2,10 @@ package com.giraone.kafka.pipeline.service.pipe;
 
 import com.giraone.kafka.pipeline.config.ApplicationProperties;
 import com.giraone.kafka.pipeline.service.CounterService;
-import io.atleon.kafka.KafkaReceiver;
-import io.atleon.kafka.KafkaSender;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
+import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,8 +14,8 @@ public class PipeReceiveSendService extends AbstractPipeService {
     public PipeReceiveSendService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        KafkaSender<String, String> kafkaSender,
-        KafkaReceiver<String, String> kafkaReceiver
+        ReactiveKafkaProducerTemplate<String, String> kafkaSender,
+        ReactiveKafkaConsumerTemplate<String, String> kafkaReceiver
     ) {
         super(applicationProperties, counterService, kafkaSender, kafkaReceiver);
     }

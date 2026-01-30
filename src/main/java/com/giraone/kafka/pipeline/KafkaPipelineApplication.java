@@ -1,7 +1,6 @@
 package com.giraone.kafka.pipeline;
 
 import com.giraone.kafka.pipeline.config.ApplicationProperties;
-import com.giraone.kafka.pipeline.config.properties.SpringKafkaProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -17,7 +16,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ApplicationProperties.class, SpringKafkaProperties.class})
+@EnableConfigurationProperties({ApplicationProperties.class})
 public class KafkaPipelineApplication {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaPipelineApplication.class);

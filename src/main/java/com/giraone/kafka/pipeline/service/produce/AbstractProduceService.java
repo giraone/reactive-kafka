@@ -3,13 +3,13 @@ package com.giraone.kafka.pipeline.service.produce;
 import com.giraone.kafka.pipeline.config.ApplicationProperties;
 import com.giraone.kafka.pipeline.service.AbstractService;
 import com.giraone.kafka.pipeline.service.CounterService;
-import io.atleon.kafka.KafkaSender;
-import io.atleon.kafka.KafkaSenderRecord;
-import io.atleon.kafka.KafkaSenderResult;
+import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import reactor.kafka.sender.SenderRecord;
+import reactor.kafka.sender.SenderResult;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -22,14 +22,14 @@ public abstract class AbstractProduceService extends AbstractService {
     protected static final Scheduler schedulerForGenerateNumbers = Schedulers.newSingle("generateNumberScheduler", false);
     protected static final Scheduler schedulerForKafkaProduce = Schedulers.newSingle("producerScheduler", false);
 
-    protected final KafkaSender<String, String> reactiveKafkaProducerTemplate;
+    protected final ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate;
     protected final String topicOutput;
     protected final int maxNumberOfEvents;
 
     protected AbstractProduceService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        KafkaSender<String, String> reactiveKafkaProducerTemplate
+        ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate
     ) {
         super(applicationProperties, counterService);
         this.reactiveKafkaProducerTemplate = reactiveKafkaProducerTemplate;
@@ -61,11 +61,11 @@ public abstract class AbstractProduceService extends AbstractService {
             .doOnNext(t -> counterService.logRateProduced());
     }
 
-    protected Mono<KafkaSenderResult<String>> send(KafkaSenderRecord<String, String, String> senderRecord) {
+    protected Mono<SenderResult<String>> send(SenderRecord<String, String, String> senderRecord) {
 
         return reactiveKafkaProducerTemplate.send(senderRecord)
             .doOnNext(senderResult ->
-                counterService.logRateSent(senderResult.recordMetadata().get().partition(), senderResult.recordMetadata().get().offset()));
+                counterService.logRateSent(senderResult.recordMetadata().partition(), senderResult.recordMetadata().offset()));
     }
 
     private String buildContent() {

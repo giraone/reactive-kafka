@@ -13,8 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import reactor.util.function.Tuples;
 
-import java.time.Duration;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -39,7 +37,7 @@ class ConsumeSampledServiceIntTest extends AbstractKafkaIntTest {
     void receiveOneEvent() throws Exception {
 
         long before = counterService.getCounterProcessed();
-        send(applicationProperties.getTopicB(), Tuples.of("9", "nine")).block(Duration.ofMinutes(1L));
+        send(applicationProperties.getTopicB(), Tuples.of("9", "nine"));
         // We have to wait some time. We use at least the producer request timeout.
         Thread.sleep(requestTimeoutMillis * 2);
         long after = counterService.getCounterProcessed();

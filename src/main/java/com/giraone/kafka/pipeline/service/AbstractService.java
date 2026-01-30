@@ -1,8 +1,6 @@
 package com.giraone.kafka.pipeline.service;
 
 import com.giraone.kafka.pipeline.config.ApplicationProperties;
-import io.atleon.kafka.KafkaReceiverRecord;
-import io.atleon.kafka.KafkaSenderResult;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +8,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.ContextClosedEvent;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.ReceiverRecord;
+import reactor.kafka.sender.SenderResult;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,7 +26,7 @@ public abstract class AbstractService implements CommandLineRunner {
     protected final CounterService counterService;
 
     protected AbstractService(ApplicationProperties applicationProperties,
-                           CounterService counterService) {
+                              CounterService counterService) {
         this.applicationProperties = applicationProperties;
         this.counterService = counterService;
     }
@@ -62,36 +62,34 @@ public abstract class AbstractService implements CommandLineRunner {
         }
     }
 
-    protected void logReceived(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
-        final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+    protected void logReceived(ReceiverRecord<String, String> receiverRecord) {
+        final int partition = receiverRecord.partition();
+        final long offset = receiverRecord.partition();
         counterService.logRateReceived(partition, offset);
-        LOGGER.debug("<<< {} {} {} {} {}", consumerRecord.topic(), partition, consumerRecord.offset(), offset, consumerRecord.value());
+        LOGGER.debug("<<< {} {} {} {} {}", receiverRecord.topic(), partition, receiverRecord.offset(), offset, receiverRecord.value());
     }
 
-    protected void logProcessed(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
-        final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+    protected void logProcessed(ReceiverRecord<String, String> receiverRecord) {
+        final int partition = receiverRecord.partition();
+        final long offset = receiverRecord.partition();
         counterService.logRateProcessed();
-        LOGGER.debug("°°° {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
+        LOGGER.debug("°°° {} {} {} {} {}", receiverRecord.topic(), partition, offset, receiverRecord.key(), receiverRecord.value());
     }
 
-    protected void logSent(KafkaSenderResult<KafkaReceiverRecord<String, String>> senderResult) {
-        final ConsumerRecord<String,String> consumerRecord = senderResult.correlationMetadata().consumerRecord();
-        final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+    protected void logSent(SenderResult<ReceiverRecord<String, String>> senderResult) {
+        final String topic = senderResult.recordMetadata().topic();
+        final int partition = senderResult.recordMetadata().partition();
+        final long offset = senderResult.recordMetadata().offset();
         counterService.logRateSent(partition, offset);
-        LOGGER.debug(">>> {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
+        final ConsumerRecord<String, String> consumerRecord = senderResult.correlationMetadata();
+        LOGGER.debug(">>> {} {} {} {} {}", topic, partition, offset, consumerRecord.key(), consumerRecord.value());
     }
 
-    protected void logCommited(KafkaReceiverRecord<String, String> receiverRecord) {
-        final ConsumerRecord<String,String> consumerRecord = receiverRecord.consumerRecord();
-        final int partition = consumerRecord.partition();
-        final long offset = consumerRecord.partition();
+    protected void logCommited(ReceiverRecord<String, String> receiverRecord) {
+        final int partition = receiverRecord.partition();
+        final long offset = receiverRecord.offset();
         counterService.logRateCommitted(partition, offset);
-        LOGGER.debug("### {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
+        LOGGER.debug("### {} {} {} {} {}", receiverRecord.topic(), partition, offset, receiverRecord.key(), receiverRecord.value());
     }
 
     protected void logCommitError(Throwable throwable) {

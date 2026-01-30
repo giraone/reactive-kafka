@@ -2,8 +2,9 @@ package com.giraone.kafka.pipeline.service.pipe;
 
 import com.giraone.kafka.pipeline.config.ApplicationProperties;
 import com.giraone.kafka.pipeline.service.CounterService;
-import io.atleon.kafka.KafkaReceiver;
-import io.atleon.kafka.KafkaSender;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
+import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,9 +13,8 @@ public class PipePartitionedService extends AbstractPipeService {
     public PipePartitionedService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        KafkaSender<String, String> kafkaSender,
-        KafkaReceiver<String, String> kafkaReceiver
-
+        ReactiveKafkaProducerTemplate<String, String> kafkaSender,
+        ReactiveKafkaConsumerTemplate<String, String> kafkaReceiver
     ) {
         super(applicationProperties, counterService, kafkaSender, kafkaReceiver);
     }
@@ -27,7 +27,7 @@ public class PipePartitionedService extends AbstractPipeService {
         LOGGER.info("Assembly of {}", this.getClass().getSimpleName());
         this.receive()
             // group by partition to guarantee ordering
-            .groupBy(receiverRecord -> receiverRecord.consumerRecord().partition())
+            .groupBy(ConsumerRecord::partition)
             .flatMap(partitionFlux ->
                 partitionFlux.publishOn(scheduler)
                     // perform the pipe task

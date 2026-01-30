@@ -2,10 +2,10 @@ package com.giraone.kafka.pipeline.service.produce;
 
 import com.giraone.kafka.pipeline.config.ApplicationProperties;
 import com.giraone.kafka.pipeline.service.CounterService;
-import io.atleon.kafka.KafkaSender;
-import io.atleon.kafka.KafkaSenderRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Service;
+import reactor.kafka.sender.SenderRecord;
 
 @Service
 public class ProduceConcatMapService extends AbstractProduceService {
@@ -13,7 +13,7 @@ public class ProduceConcatMapService extends AbstractProduceService {
     public ProduceConcatMapService(
         ApplicationProperties applicationProperties,
         CounterService counterService,
-        KafkaSender<String, String> reactiveKafkaProducerTemplate
+        ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate
     ) {
         super(applicationProperties, counterService, reactiveKafkaProducerTemplate);
     }
@@ -30,7 +30,7 @@ public class ProduceConcatMapService extends AbstractProduceService {
             .publishOn(schedulerForKafkaProduce)
             .concatMap(tuple -> {
                 final ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topicOutput, tuple.getT1(), tuple.getT2());
-                final KafkaSenderRecord<String, String, String> senderRecord = KafkaSenderRecord.create(producerRecord, tuple.getT1());
+                final SenderRecord<String, String, String> senderRecord = SenderRecord.create(producerRecord, tuple.getT1());
                 return this.send(senderRecord);
             })
             .doOnError(e -> counterService.logError("ProduceConcatMapService failed!", e))
