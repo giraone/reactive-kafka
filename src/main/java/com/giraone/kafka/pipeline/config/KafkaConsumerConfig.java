@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
@@ -32,57 +31,50 @@ public class KafkaConsumerConfig {
                                                                      SpringKafkaProperties springKafkaProperties) {
 
         final KafkaProperties.Consumer springConsumerProperties = springKafkaProperties.getConsumer();
-        final Map<String, Object> springConsumerPropertiesObjectMap =
-                springConsumerProperties.getProperties().entrySet()
-                        .stream()
-                        .peek(entry -> LOGGER.info("using spring.kafka.consumer.properties.{}", entry))
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue
-                        ));
+        final Map<String, Object> springConsumerPropertiesObjectMap = PropertyUtil.buildConsumerProperties(springConsumerProperties.getProperties());
         final KafkaReceiverOptions.Builder<String, String> builder = KafkaReceiverOptions.<String, String>newBuilder()
-                .consumerProperties(springConsumerPropertiesObjectMap)
-                .consumerProperty(BOOTSTRAP_SERVERS_CONFIG, springKafkaProperties.getBootstrapServers())
-                .consumerProperty(CLIENT_ID_CONFIG, springKafkaProperties.buildClientId())
-                .consumerProperty(GROUP_ID_CONFIG, springKafkaProperties.getConsumer().getGroupId())
-                // StickyAssignor is best practice and our default
-                .consumerProperty(PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName())
-                .consumerProperty(KEY_DESERIALIZER_CLASS_CONFIG, springConsumerProperties.getKeyDeserializer() != null
-                        ? springConsumerProperties.getKeyDeserializer().getName()
-                        : org.apache.kafka.common.serialization.StringDeserializer.class.getName()
-                )
-                .consumerProperty(VALUE_DESERIALIZER_CLASS_CONFIG, springConsumerProperties.getValueDeserializer() != null
-                        ? springConsumerProperties.getValueDeserializer().getName()
-                        : org.apache.kafka.common.serialization.StringDeserializer.class.getName()
-                )
-                .consumerProperty(AUTO_OFFSET_RESET_CONFIG, springConsumerProperties.getAutoOffsetReset())
-                // Poll properties
-                .consumerProperty(MAX_POLL_RECORDS_CONFIG, springConsumerProperties.getMaxPollRecords() != null
-                        ? springConsumerProperties.getMaxPollRecords()
-                        : 10 // Kafka default = DEFAULT_MAX_POLL_RECORDS=500. Our default FOR AGENTS = 10.
-                )
-                .consumerProperty(MAX_POLL_INTERVAL_MS_CONFIG, springConsumerProperties.getMaxPollInterval() != null
-                        ? (int) springConsumerProperties.getMaxPollInterval().toMillis()
-                        : (int) Duration.ofMinutes(5).toMillis() // Kafka default
-                )
-                // Fetch properties
-                .consumerProperty(FETCH_MAX_WAIT_MS_CONFIG, springConsumerProperties.getFetchMaxWait() != null
-                        ? (int) springConsumerProperties.getFetchMaxWait().toMillis()
-                        : DEFAULT_FETCH_MAX_WAIT_MS
-                )
-                // Metrics reporter - we want default Kafka metrics
-                .consumerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());
+            .consumerProperties(springConsumerPropertiesObjectMap)
+            .consumerProperty(BOOTSTRAP_SERVERS_CONFIG, springKafkaProperties.getBootstrapServers())
+            .consumerProperty(CLIENT_ID_CONFIG, springKafkaProperties.buildClientId())
+            .consumerProperty(GROUP_ID_CONFIG, springKafkaProperties.getConsumer().getGroupId())
+            // StickyAssignor is best practice and our default
+            .consumerProperty(PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName())
+            .consumerProperty(KEY_DESERIALIZER_CLASS_CONFIG, springConsumerProperties.getKeyDeserializer() != null
+                ? springConsumerProperties.getKeyDeserializer().getName()
+                : org.apache.kafka.common.serialization.StringDeserializer.class.getName()
+            )
+            .consumerProperty(VALUE_DESERIALIZER_CLASS_CONFIG, springConsumerProperties.getValueDeserializer() != null
+                ? springConsumerProperties.getValueDeserializer().getName()
+                : org.apache.kafka.common.serialization.StringDeserializer.class.getName()
+            )
+            .consumerProperty(AUTO_OFFSET_RESET_CONFIG, springConsumerProperties.getAutoOffsetReset())
+            // Poll properties
+            .consumerProperty(MAX_POLL_RECORDS_CONFIG, springConsumerProperties.getMaxPollRecords() != null
+                ? springConsumerProperties.getMaxPollRecords()
+                : 10 // Kafka default = DEFAULT_MAX_POLL_RECORDS=500. Our default FOR AGENTS = 10.
+            )
+            .consumerProperty(MAX_POLL_INTERVAL_MS_CONFIG, springConsumerProperties.getMaxPollInterval() != null
+                ? (int) springConsumerProperties.getMaxPollInterval().toMillis()
+                : (int) Duration.ofMinutes(5).toMillis() // Kafka default
+            )
+            // Fetch properties
+            .consumerProperty(FETCH_MAX_WAIT_MS_CONFIG, springConsumerProperties.getFetchMaxWait() != null
+                ? (int) springConsumerProperties.getFetchMaxWait().toMillis()
+                : DEFAULT_FETCH_MAX_WAIT_MS
+            )
+            // Metrics reporter - we want default Kafka metrics
+            .consumerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());
 
         if (springKafkaProperties.getJaas().isEnabled()) {
             final SpringKafkaProperties.Properties properties = springKafkaProperties.getProperties();
             final SpringKafkaProperties.Sasl saslProperties = properties.getSasl();
             final String saslJaasConfig = saslProperties.getJaas().getConfig();
             LOGGER.debug("security.protocol={}, sasl.mechanism={}",
-                    springKafkaProperties.getSecurity().getProtocol(), saslProperties.getMechanism());
+                springKafkaProperties.getSecurity().getProtocol(), saslProperties.getMechanism());
             builder
-                    .consumerProperty(SECURITY_PROTOCOL_CONFIG, springKafkaProperties.getSecurity().getProtocol())
-                    .consumerProperty("sasl.mechanism", saslProperties.getMechanism())
-                    .consumerProperty("sasl.jaas.config", saslJaasConfig);
+                .consumerProperty(SECURITY_PROTOCOL_CONFIG, springKafkaProperties.getSecurity().getProtocol())
+                .consumerProperty("sasl.mechanism", saslProperties.getMechanism())
+                .consumerProperty("sasl.jaas.config", saslJaasConfig);
         }
 
         // Atleon enhancements
@@ -99,8 +91,8 @@ public class KafkaConsumerConfig {
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("pollTimeout={}, loadMaxPollRecords={}, maxActiveInFlight={}, maxCommitAttempts={}",
-                    kafkaReceiverOptions.pollTimeout(), kafkaReceiverOptions.loadMaxPollRecords(),
-                    kafkaReceiverOptions.maxActiveInFlight(), kafkaReceiverOptions.maxCommitAttempts());
+                kafkaReceiverOptions.pollTimeout(), kafkaReceiverOptions.loadMaxPollRecords(),
+                kafkaReceiverOptions.maxActiveInFlight(), kafkaReceiverOptions.maxCommitAttempts());
         }
         return KafkaReceiver.create(kafkaReceiverOptions);
     }
@@ -117,7 +109,7 @@ public class KafkaConsumerConfig {
             final SpringKafkaProperties.Sasl saslProperties = properties.getSasl();
             final String saslJaasConfig = saslProperties.getJaas().getConfig();
             LOGGER.debug("ADMIN security.protocol={}, sasl.mechanism={}",
-                    springKafkaProperties.getSecurity().getProtocol(), saslProperties.getMechanism());
+                springKafkaProperties.getSecurity().getProtocol(), saslProperties.getMechanism());
             adminProperties.put(SECURITY_PROTOCOL_CONFIG, springKafkaProperties.getSecurity().getProtocol());
             adminProperties.put("sasl.mechanism", saslProperties.getMechanism());
             adminProperties.put("sasl.jaas.config", saslJaasConfig);
