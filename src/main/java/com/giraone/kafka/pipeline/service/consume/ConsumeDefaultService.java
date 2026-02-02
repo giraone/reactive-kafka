@@ -24,7 +24,6 @@ public class ConsumeDefaultService extends AbstractConsumeService {
 
         return receive()
             .flatMapSequential(this::process)
-            .doOnNext(this::logProcessed)
             .concatMap(this::manualCommit);
     }
 }
