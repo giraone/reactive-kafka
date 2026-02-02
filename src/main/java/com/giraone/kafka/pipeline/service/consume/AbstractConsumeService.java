@@ -31,6 +31,8 @@ public abstract class AbstractConsumeService extends AbstractService {
         this.topicInput = applicationProperties.getTopicB();
         this.kafkaReceiver = kafkaReceiver;
         this.delay = applicationProperties.getProcessing().getWaitTime();
+        LOGGER.info("{}: acknowledgementQueueMode={}", getClass().getSimpleName(),
+            applicationProperties.getConsumer().getAcknowledgementQueueMode());
     }
 
     //------------------------------------------------------------------------------------------------------------------
