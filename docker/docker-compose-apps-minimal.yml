@@ -23,7 +23,7 @@ services:
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
       SPRING_APPLICATION_NAME: produce
       SPRING_KAFKA_CLIENT_ID: produce
-      SPRING_KAFKA_CONSUMER_GROUP_ID: produce
+      SPRING_KAFKA_CONSUMER_GROUP_ID: produce1
       APPLICATION_MODE: ProduceFlatMap # ProduceFlatMap or ProduceConcatMap
       APPLICATION_TOPIC_A: a2
       APPLICATION_PRODUCE_INTERVAL: 1ms
@@ -51,7 +51,7 @@ services:
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
       SPRING_APPLICATION_NAME: pipe
       SPRING_KAFKA_CLIENT_ID: pipe
-      SPRING_KAFKA_CONSUMER_GROUP_ID: pipe
+      SPRING_KAFKA_CONSUMER_GROUP_ID: PipeReceiveSend-1
       APPLICATION_MODE: PipeReceiveSend # PipeReceiveSend or PipePartitioned
       APPLICATION_TOPIC_A: a2
       APPLICATION_TOPIC_B: b2
@@ -79,8 +79,8 @@ services:
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
       SPRING_APPLICATION_NAME: consume
       SPRING_KAFKA_CLIENT_ID: consume
-      SPRING_KAFKA_CONSUMER_GROUP_ID: consume
-      APPLICATION_MODE: ConsumeSampled # ConsumeDefault or ConsumeSampled
+      SPRING_KAFKA_CONSUMER_GROUP_ID: ConsumeDefault-1
+      APPLICATION_MODE: ConsumeDefault # ConsumeDefault or ConsumeSampled
       APPLICATION_TOPIC_B: b2
 
 networks:

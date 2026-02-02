@@ -9,6 +9,9 @@
   - producer: produces messages to Kafka topic `a1` - Actuator endpoints via http://localhost:9081
   - pipe: reads messages from `a1` and writes them to `b1` - Actuator endpoints via http://localhost:9082
   - consumer: reads messages from `b1` - Actuator endpoints via http://localhost:9083
+- [Spring Boot App Produce Only](docker-compose-app-produce.yml)
+- [Spring Boot App Pipe Only](docker-compose-app-pipe.yml)
+- [Spring Boot App Consume Only](docker-compose-app-consume.yml)
 
 ### Kafka Cluster
 
@@ -17,6 +20,22 @@
 - The setup defines a user `admin` with access to all topics and consumer groups and the right to create topics
 - The setup defines a user `user1` with access to all topics and consumer groups, but NOT the right to create topics
 - The setup defines also users `broker`, `c3` and `metricsreporter` for internal/future usage
+
+## Topology and Topics
+
+The default topology with 3 services is:
+
+```
+produce --> Topic a2 <-- pipe --> Topic b2 <-- consume
+```
+
+Change the compose files for adapting the topology and topics as needed.
+E.g. change `APPLICATION_TOPIC_B: b2` to `APPLICATION_TOPIC_B: a2` and
+start only `produce` and `consume` services to have only producer and consumer working on the same topic:
+
+```
+produce --> Topic a2 <-- consume
+```
 
 ## Scripts
 
@@ -28,3 +47,5 @@
 - `./kafka-list-offsets-topic.sh <topic-name>`: List offsets for all partitions of a given topic
 - `./kafka-produce-topic.sh <topic-name>`: Write test messages to a topic
 - `./kafka-consume-topic.sh <topic-name>`: Read messages from a topic
+- `./docker-delete-none-images.sh`: Clean docker images with `<none>` tag (dangling images, when `mvn jib:dockerBuild` was used multiple times)
+
