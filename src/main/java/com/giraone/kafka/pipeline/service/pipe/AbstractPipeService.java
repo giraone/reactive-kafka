@@ -42,7 +42,7 @@ public abstract class AbstractPipeService extends AbstractService {
         this.kafkaReceiver = kafkaReceiver;
         this.topicInput = applicationProperties.getTopicA();
         this.topicOutput = applicationProperties.getTopicB();
-        this.delay = applicationProperties.getProcessingTime();
+        this.delay = applicationProperties.getProcessing().getWaitTime();
         this.retry = applicationProperties.getConsumer().getRetrySpecification().toRetry();
         this.scheduler = applicationProperties.getProcessing().buildScheduler();
     }
@@ -59,7 +59,7 @@ public abstract class AbstractPipeService extends AbstractService {
      * The pipeline task, that may take some time (defined by APPLICATION_PROCESSING_TIME) for processing an input.
      */
     protected Mono<KafkaSenderRecord<String, String, KafkaReceiverRecord<String, String>>> process(KafkaReceiverRecord<String, String> inputRecord) {
-        return Mono.delay(applicationProperties.getProcessingTime())
+        return Mono.delay(this.delay)
             .map(ignored -> coreProcess(inputRecord.value()))
             // pass KafkaReceiverRecord as correlation metadata to KafkaSenderRecord to be able to commit later
             .map(outputValue -> KafkaSenderRecord.create(getTopicOutput(), inputRecord.key(), outputValue, inputRecord));

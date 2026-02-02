@@ -35,6 +35,7 @@ public abstract class AbstractProduceService extends AbstractService {
         this.kafkaSender = kafkaSender;
         this.maxNumberOfEvents = applicationProperties.getProducerVariables().getMaxNumberOfEvents();
         this.topicOutput = applicationProperties.getTopicA();
+        LOGGER.info("Producer {} will produce {} events to topic \"{}\"", getClass().getSimpleName(), maxNumberOfEvents, topicOutput);
     }
 
     protected Flux<Tuple2<String, String>> source(Duration delay, int limit) {

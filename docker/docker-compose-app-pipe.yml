@@ -23,11 +23,12 @@ services:
       SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
       SPRING_APPLICATION_NAME: pipe
       SPRING_KAFKA_CLIENT_ID: pipe
-      SPRING_KAFKA_CONSUMER_GROUP_ID: PipeReceiveSend-1
+      SPRING_KAFKA_CONSUMER_GROUP_ID: Pipe-1
       APPLICATION_MODE: PipeReceiveSend # PipeReceiveSend or PipePartitioned
-      APPLICATION_TOPIC_A: a2
-      APPLICATION_TOPIC_B: b2
-      APPLICATION_PROCESSING_TIME: 10ms
+      APPLICATION_TOPIC_A: a1
+      APPLICATION_TOPIC_B: b1
+      APPLICATION_PROCESSING_WAIT_TIME: 10ms # Simulate processing time
+      APPLICATION_LOG_RATE: 100ms # Log processing rates every 100ms
 
 networks:
   jobs:
