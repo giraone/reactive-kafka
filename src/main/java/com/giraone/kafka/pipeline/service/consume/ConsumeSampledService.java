@@ -36,7 +36,7 @@ public class ConsumeSampledService extends AbstractConsumeService {
                     .flatMapSequential(this::process)
                     // Commit the processed records periodically
                     .sample(Duration.ofMillis(250L))
-                    //.onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, BufferOverflowStrategy.DROP_OLDEST)
+                    .onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, BufferOverflowStrategy.DROP_OLDEST)
                     .concatMap(this::manualCommit)
             );
     }
