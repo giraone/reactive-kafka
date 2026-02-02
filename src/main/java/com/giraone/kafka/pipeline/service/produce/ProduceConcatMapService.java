@@ -25,7 +25,7 @@ public class ProduceConcatMapService extends AbstractProduceService {
 
         LOGGER.info("STARTING to produce {} events using ProduceConcatMapService.", maxNumberOfEvents);
         final long start = System.currentTimeMillis();
-        source(applicationProperties.getProducerVariables().getInterval(), maxNumberOfEvents)
+        source(interval, maxNumberOfEvents)
             // A scheduler is needed - a single or parallel(1) is OK
             .publishOn(schedulerForKafkaProduce)
             .concatMap(tuple -> {
