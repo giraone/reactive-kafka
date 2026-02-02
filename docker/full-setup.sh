@@ -18,13 +18,15 @@ NC='\033[0m' # No Color
 
 apps="$1"
 
+./data-setup.sh
+
 docker-compose -f docker-compose-services.yml up -d
 
 echo "${BLUE}Wait 20 seconds, till the zookeeper is ready ...${NC}"
 sleep 20
 
 echo "${YELLOW}Creating Kafka users ..."
-podman-compose -f docker-compose-kafka-add-user.yml up -d
+docker-compose -f docker-compose-kafka-add-user.yml up -d
 
 echo "${BLUE}Wait 40 seconds, till the brokers are ready ...${NC}"
 sleep 40
@@ -34,10 +36,10 @@ echo "${YELLOW}Creating kafka topics ...${NC}"
 
 if [[ "$noTools" == "false" ]]; then
   echo "${YELLOW}Starting tools (kafbat, ...).${NC}"
-  podman-compose -f docker-compose-tools-kafbat.yml up -d
+  docker-compose -f docker-compose-tools-kafbat.yml up -d
 fi
 
 if [[ "$apps" == "minimal" ]]; then
   echo "${YELLOW}Starting apps (minimal).${NC}"
-  podman-compose -f docker-compose-apps-minimal.yml up -d
+  docker-compose -f docker-compose-apps-minimal.yml up -d
 fi
