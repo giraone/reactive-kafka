@@ -25,6 +25,7 @@ public abstract class AbstractProduceService extends AbstractService {
     protected final ReactiveKafkaProducerTemplate<String, String> kafkaSender;
     protected final String topicOutput;
     protected final int maxNumberOfEvents;
+    protected final Duration interval;
 
     protected AbstractProduceService(
         ApplicationProperties applicationProperties,
@@ -34,7 +35,10 @@ public abstract class AbstractProduceService extends AbstractService {
         super(applicationProperties, counterService);
         this.kafkaSender = kafkaSender;
         this.maxNumberOfEvents = applicationProperties.getProducerVariables().getMaxNumberOfEvents();
+        this.interval = applicationProperties.getProducerVariables().getInterval();
         this.topicOutput = applicationProperties.getTopicA();
+        LOGGER.info("If activated, {} will produce {} events to topic \"{}\" using an interval of {} ms.",
+            getClass().getSimpleName(), maxNumberOfEvents, topicOutput, interval.toMillis());
     }
 
     protected Flux<Tuple2<String, String>> source(Duration delay, int limit) {

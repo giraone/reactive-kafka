@@ -54,17 +54,12 @@ public class ApplicationProperties {
      * Empty for producers AND consumers - - - output topic of pipes.
      */
     private String topicB = DEFAULT_TOPIC_B;
+
     /**
-     * Time interval for producer service after which a new event is emitted. With produceInterval=100ms, there should be
-     * approx. 10 events per second.
+     * Log setting. A log will be written every logRate milliseconds for sent and received messages.
      * Default is 100ms.
      */
-    private Duration produceInterval = Duration.ofMillis(100);
-    /**
-     * Processing time for pipe service. The transform step will take (wait) this amount of time.
-     * Default is 10ms.
-     */
-    private Duration processingTime = Duration.ofMillis(10);
+    private Duration logRate = Duration.ofMillis(100);
 
     /**
      * Kafka producer properties.
@@ -74,13 +69,13 @@ public class ApplicationProperties {
      * Kafka consumer properties.
      */
     private KafkaConsumerProperties consumer = new KafkaConsumerProperties();
-    /**
-     * Kafka producer properties.
-     */
-    private ProducerVariables producerVariables = new ProducerVariables();
 
     /**
-     * Processing properties (ordering)
+     * Producer options.
+     */
+    private ProducerVariables producerVariables = new ProducerVariables();
+    /**
+     * Processing (pipe, consume) options.
      */
     private ProcessingProperties processing = new ProcessingProperties();
     /**
@@ -115,6 +110,12 @@ public class ApplicationProperties {
     @NoArgsConstructor
     @ToString
     public static class ProducerVariables {
+        /**
+         * Time interval for producer service after which a new event is emitted. With produceInterval=10ms, there should be
+         * approx. 100 events per second.
+         * Default is 10ms.
+         */
+        private Duration interval = Duration.ofMillis(10);
         /**
          * Maximum number of events, that are produced. Default = 1_000_000.
          **/

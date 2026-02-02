@@ -1,5 +1,6 @@
 package com.giraone.kafka.pipeline.service;
 
+import com.giraone.kafka.pipeline.config.ApplicationProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
@@ -16,11 +17,12 @@ import java.util.Map;
 public class CounterService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CounterService.class);
-    private static final long LOG_PERIOD_MS = 1000L;
 
     // per metric, per partition
     private final Map<String, Map<Integer, BeforeAndNowCounter>> counterPerMetric = new HashMap<>();
     private final Map<String, BeforeAndNowCounter> totalCounterPerMetric = new HashMap<>();
+
+    private final long logEveryMs;
 
     private final Counter counterProduced;
     private final Counter counterSent;
@@ -33,7 +35,10 @@ public class CounterService {
     private final Counter counterMainLoopStarted;
     private final Counter counterMainLoopStopped;
 
-    public CounterService(MeterRegistry registry) {
+    public CounterService(ApplicationProperties applicationProperties, MeterRegistry registry) {
+
+        this.logEveryMs = applicationProperties.getLogRate().toMillis();
+        LOGGER.info("Starting Counter Service configured to log every {} ms", logEveryMs);
 
         this.counterProduced = registry.counter("pipeline.produced");
         this.counterSent = registry.counter("pipeline.sent");
@@ -123,16 +128,17 @@ public class CounterService {
             }
             counterForPartition.value++;
 
-            if ((now - counterForPartition.lastLog) > LOG_PERIOD_MS) {
+            if ((now - counterForPartition.lastLog) > logEveryMs) {
                 final long partitionRate = counterForPartition.value * 1000L / (now - counterForPartition.start);
                 final long totalRate = counterTotal.value * 1000L / (now - counterTotal.start);
-                LOGGER.info("{}/{}: ops/p={} ops={} offset={} total/p={} total={}",
-                    metric, String.format("%02d", partition), partitionRate, totalRate, offset, counterForPartition.value, counterTotal.value);
+                LOGGER.info("{}/{}: ops/partition={} ops/topic={} offset={} total/partition={} total/topic={}",
+                    metric, String.format("%02d", partition), partitionRate, totalRate,
+                    offset, counterForPartition.value, counterTotal.value);
                 counterForPartition.lastLog = now;
                 counterTotal.lastLog = now;
             }
         } else {
-            if ((now - counterTotal.lastLog) > LOG_PERIOD_MS) {
+            if ((now - counterTotal.lastLog) > logEveryMs) {
                 final long totalRate = counterTotal.value * 1000L / (now - counterTotal.start);
                 LOGGER.info("{}/**: ops={} total={}",
                     metric, totalRate, counterTotal.value);

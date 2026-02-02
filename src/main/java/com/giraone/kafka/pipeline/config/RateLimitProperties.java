@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Rate limiting properties for processing consumed records. Not yet used.
+ */
 @Setter
 @Getter
 @NoArgsConstructor

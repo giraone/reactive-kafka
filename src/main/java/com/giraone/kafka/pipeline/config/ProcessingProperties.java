@@ -11,6 +11,11 @@ import org.slf4j.LoggerFactory;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
+
+/**
+ * Processing properties for consumer and pipe processing.
+ */
 @Setter
 @Getter
 @NoArgsConstructor
@@ -54,20 +59,14 @@ public class ProcessingProperties {
     private int newBoundedElasticQueueSize = 8 * 32;
 
     /**
-     * Concurrency level for processing consumed records within each partition using flatMapSequential.
-     * This controls how many records from a single partition are processed in parallel.
-     * Default is 1 (sequential processing per partition), which ensures ordering within partitions.
-     * Higher values increase throughput but may break ordering guarantees within a partition.
+     * Processing time for consume and pipe service. The transform step will wait additionally this amount of time.
+     * Default is 10ms.
      */
-    private int concurrencyPerPartition = 1;
+    private Duration waitTime = Duration.ofMillis(10);
 
     /**
-     * ONLY for ORDERED processing! Reduce the concurrency of each agent instance by using modulo on the partition index.
-     * This value must be either null (no reducing) or between 1 and the number of partitions of the schedule topic(s).
+     * Rate limiter properties for processing consumed records. Not used yet.
      */
-    private Integer reducedPartitionGroupBy;
-
-
     private RateLimitProperties rate = new RateLimitProperties();
 
     /**

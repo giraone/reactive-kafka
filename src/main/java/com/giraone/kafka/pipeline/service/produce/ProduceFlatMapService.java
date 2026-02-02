@@ -25,7 +25,7 @@ public class ProduceFlatMapService extends AbstractProduceService {
 
         LOGGER.info("STARTING to produce {} events using ProduceFlatMapService.", maxNumberOfEvents);
         final long start = System.currentTimeMillis();
-        source(applicationProperties.getProduceInterval(), maxNumberOfEvents)
+        source(applicationProperties.getProducerVariables().getInterval(), maxNumberOfEvents)
             // A scheduler is needed - a single or parallel(1) is OK
             .publishOn(schedulerForKafkaProduce)
             .flatMap(tuple -> {

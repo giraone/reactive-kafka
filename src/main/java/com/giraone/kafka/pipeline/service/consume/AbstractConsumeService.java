@@ -10,11 +10,15 @@ import reactor.core.publisher.Mono;
 import reactor.kafka.receiver.ReceiverRecord;
 import reactor.util.retry.RetryBackoffSpec;
 
+import java.time.Duration;
+import java.util.Locale;
+
 @Service
 public abstract class AbstractConsumeService extends AbstractService {
 
     protected final String topicInput;
     protected final ReactiveKafkaConsumerTemplate<String, String> kafkaReceiver;
+    protected final Duration delay; // How long does the pure processing take?
 
     protected AbstractConsumeService(
         ApplicationProperties applicationProperties,
@@ -24,6 +28,7 @@ public abstract class AbstractConsumeService extends AbstractService {
         super(applicationProperties, counterService);
         this.topicInput = applicationProperties.getTopicB();
         this.kafkaReceiver = kafkaReceiver;
+        this.delay = applicationProperties.getProcessing().getWaitTime();
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -38,18 +43,32 @@ public abstract class AbstractConsumeService extends AbstractService {
 
     protected Flux<ReceiverRecord<String, String>> receive() {
         final RetryBackoffSpec retryBackoffSpec = applicationProperties.getConsumer().getRetrySpecification().toRetry();
-        LOGGER.info("Start reading from topic \"{}\"", topicInput);
+        LOGGER.info("{}: Start reading from topic \"{}\"", getClass().getSimpleName(), topicInput);
         return kafkaReceiver.receive()
             // kafka consume retries
             .retryWhen(retryBackoffSpec)
             .doOnNext(this::logReceived);
     }
 
-    protected Mono<ReceiverRecord<String, String>> process(ReceiverRecord<String, String> receiverRecord) {
-        // Simple consumer, that only logs
-        counterService.logRateReceived(receiverRecord.partition(), receiverRecord.offset());
+    /**
+     * The consumer task, that may take some time (defined by APPLICATION_PROCESSING_TIME) for processing an input.
+     */
+    protected Mono<ReceiverRecord<String, String>> process(ReceiverRecord<String, String> inputRecord) {
+        return Mono.delay(this.delay)
+            .map(result -> coreProcess(inputRecord));
+    }
+
+    /**
+     * The core consumer task without additional waiting time.
+     * Here a simple convert toUpperCase and some logging.
+     */
+    protected ReceiverRecord<String, String> coreProcess(ReceiverRecord<String, String> receiverRecord) {
+        final String input = receiverRecord.value();
         // A real consumer would do some meaningful reactive work here, e.g. write the record to a database using R2DBC
-        return Mono.just(receiverRecord);
+        final String ignored = input.toUpperCase(Locale.ROOT);
+        // and logs the rate of processed records
+        counterService.logRateProcessed();
+        return receiverRecord;
     }
 
     protected Mono<Void> manualCommit(ReceiverRecord<String, String> receiverRecord) {

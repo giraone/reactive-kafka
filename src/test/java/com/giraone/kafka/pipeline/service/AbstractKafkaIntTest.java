@@ -70,7 +70,6 @@ public abstract class AbstractKafkaIntTest {
     protected final List<List<String>> receivedMessagesPerPartition = new ArrayList<>(PARTITIONS);
     protected final List<List<ConsumerRecord<String, String>>> receivedRecordsPerPartition = new ArrayList<>(PARTITIONS);
 
-
     @Autowired
     KafkaPipelineApplication kafkaPipelineApplication; // We need a bean to wait for context startup
 
