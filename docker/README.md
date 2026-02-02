@@ -15,6 +15,16 @@ export CONTAINER_DATA=/tmp/containers/data2
 ./data-setup.sh
 ```
 
+## Security 
+
+The Kafka brokers are configured with SASL/SCRAM authentication.
+The JAAS configuration files and password property files are stored in the folder `kafka/secrets/`.
+
+ACLs are created via the compose file `docker-compose-kafka-add-user.yml`.
+
+The brokers are configured for not allowing creation of topics by "normal" clients.
+Topics are created using the script `./kafka-create-topics.sh`.
+
 ## Docker Compose
 
 - [One Zookeeper and 5 Kafka Brokers (docker-compose-services.yml)](docker-compose-services.yml)

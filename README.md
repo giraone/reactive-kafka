@@ -23,7 +23,7 @@ mvn jib:dockerBuild
 
 # Initialize Docker environment
 cd docker
-# Kafka Brokers only
+# Setup docker environment with Kafka Brokers only
 ./full-setup.sh none
 ```
 
@@ -45,17 +45,17 @@ docker-compose -f docker-compose-apps-minimal.yml down
 ```bash
 # Stop eventually running service containers
 docker stop produce pipe consume
-# Create 10000 events to a2
+# Create 10000 events to a1
 docker-compose -f docker-compose-app-produce.yml up -d && docker logs -f produce
-# When "Finished producing 10000 events to a2 after X seconds" is shown then press `Ctrl-C` and stop produce
+# When "Finished producing 10000 events to a1 after X seconds" is shown then press `Ctrl-C` and stop produce
 docker stop produce 
 # Capture the offsets of the consumer group (see docker/docker-compose-app-consume.yml for the defined consumer group)
 # It should display: Total lag: 10000
-./kafka-test-consumer-progress.sh capture ConsumeDefault-1
+./kafka-test-consumer-progress.sh capture Consume-1
 # Run the consumer to consume the 1000 events
 docker-compose -f docker-compose-app-consume.yml up -d && docker logs -f consume
 # Compare the consumption
-./kafka-test-consumer-progress.sh compare ConsumeDefault-1 10000
+./kafka-test-consumer-progress.sh compare Consume-1 10000
 ```
 
 ## Config
