@@ -108,6 +108,10 @@ public class CounterService {
         return (long) this.counterProcessed.count();
     }
 
+    public long getCounterCommitted() {
+        return (long) this.counterCommitted.count();
+    }
+
     private void logRateInternal(String metric, int partition, long offset) {
 
         final long now = System.currentTimeMillis();
