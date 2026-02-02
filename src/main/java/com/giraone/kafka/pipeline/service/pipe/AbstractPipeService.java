@@ -55,6 +55,7 @@ public abstract class AbstractPipeService extends AbstractService {
     protected Mono<SenderRecord<String, String, ReceiverRecord<String, String>>> process(ReceiverRecord<String, String> inputRecord) {
         return Mono.delay(this.delay)
             .map(ignored -> coreProcess(inputRecord.value()))
+            .doOnNext(ignored -> this.logProcessed(inputRecord))
             // pass KafkaReceiverRecord as correlation metadata to KafkaSenderRecord to be able to commit later
             .map(outputValue -> SenderRecord.create(new ProducerRecord<>(getTopicOutput(), inputRecord.key(), outputValue), inputRecord));
     }
@@ -64,7 +65,6 @@ public abstract class AbstractPipeService extends AbstractService {
      * Here a simple convert toUpperCase.
      */
     protected String coreProcess(String input) {
-        counterService.logRateProcessed();
         return input.toUpperCase(Locale.ROOT);
     }
 

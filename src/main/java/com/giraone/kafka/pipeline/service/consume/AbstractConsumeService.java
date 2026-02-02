@@ -55,7 +55,8 @@ public abstract class AbstractConsumeService extends AbstractService {
      */
     protected Mono<ReceiverRecord<String, String>> process(ReceiverRecord<String, String> inputRecord) {
         return Mono.delay(this.delay)
-            .map(result -> coreProcess(inputRecord));
+            .map(result -> coreProcess(inputRecord))
+            .doOnNext(this::logProcessed);
     }
 
     /**
@@ -66,8 +67,6 @@ public abstract class AbstractConsumeService extends AbstractService {
         final String input = receiverRecord.value();
         // A real consumer would do some meaningful reactive work here, e.g. write the record to a database using R2DBC
         final String ignored = input.toUpperCase(Locale.ROOT);
-        // and logs the rate of processed records
-        counterService.logRateProcessed();
         return receiverRecord;
     }
 
