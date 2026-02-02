@@ -40,7 +40,7 @@ class ConsumeDefaultServiceIntTest extends AbstractKafkaIntTest {
         long beforeProcessed = counterService.getCounterProcessed();
         send(applicationProperties.getTopicB(), Tuples.of("9", "nine"));
         // We have to wait some time. We use at least the producer request timeout.
-        Thread.sleep(REQUEST_TIMEOUT_MILLIS * 2);
+        Thread.sleep(REQUEST_TIMEOUT_MILLIS);
         long afterReceived = counterService.getCounterReceived();
         long afterProcessed = counterService.getCounterProcessed();
         assertThat(afterReceived - beforeReceived).isEqualTo(1);
