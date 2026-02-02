@@ -55,7 +55,7 @@ services:
       APPLICATION_MODE: PipeReceiveSend # PipeReceiveSend or PipePartitioned
       APPLICATION_TOPIC_A: a1
       APPLICATION_LOGGING_INTERVAL: 100ms # Log every 100ms
-      APPLICATION_PRODUCER_VARIABLES_INTERVAL: 10ms # Produce event every 10ms
+      APPLICATION_PRODUCER_VARIABLES_INTERVAL: 1ms # Produce event every 1ms
       APPLICATION_PRODUCER_VARIABLES_MAX_NUMBER_OF_EVENTS: 10000 # Number of events to produce
 
   consume:

@@ -47,8 +47,8 @@ docker-compose -f docker-compose-apps-minimal.yml down
 docker stop produce pipe consume
 # Create 10000 events to a1
 docker-compose -f docker-compose-app-produce.yml up -d && docker logs -f produce
-# When "Finished producing 10000 events to a1 after X seconds" is shown then press `Ctrl-C` and stop produce
-docker stop produce 
+# When "Finished producing 10000 events to a1 after X seconds" is shown then press `Ctrl-C` and stop producer:
+docker-compose -f docker-compose-app-produce.yml down
 # Capture the offsets of the consumer group (see docker/docker-compose-app-consume.yml for the defined consumer group)
 # It should display: Total lag: 10000
 ./kafka-test-consumer-progress.sh capture Consume-1

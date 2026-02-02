@@ -27,7 +27,7 @@ services:
       APPLICATION_MODE: ConsumeSampled # ConsumeDefault or ConsumeSampled
       APPLICATION_TOPIC_B: a1
       APPLICATION_PROCESSING_WAIT_TIME: 10ms # Simulate processing time
-      APPLICATION_LOG_RATE: 100ms # Log processing rates every 100ms
+      APPLICATION_LOG_RATE: 10ms # Log processing rates every 100ms
 
 networks:
   jobs:
