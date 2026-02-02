@@ -9,7 +9,7 @@ CACHE_DIR="/tmp/kafka-consumer-offsets"
 mkdir -p "$CACHE_DIR"
 
 if [[ $# -lt 2 ]] ; then
-    echo "Usage: $0 <capture|compare> <consumer-group-name> [expected_count]"
+    echo "Usage: $0 --consume-only <capture|compare> <consumer-group-name> [expected_count]"
     echo ""
     echo "Examples:"
     echo "  # Step 1: Capture initial offsets (both producer LEO and consumer offsets)"
@@ -29,11 +29,20 @@ if [[ $# -lt 2 ]] ; then
     echo "  - Messages produced but not consumed → Consumer issue"
     echo "  - Messages not produced → Producer issue"
     echo "  - Consumer offset higher than LEO (log end offset) → Consumer read messages twice"
+    echo ""
+    echo "Consume only:"
+    echo "  --consume-only  - Skip producer checks, only validate consumer progress"
     exit 1
 fi
 
 broker="kafka-1"
 brokers="kafka-1:9092,kafka-2:9092,kafka-3:9092,kafka-4:9092,kafka-5:9092,kafka-6:9092"
+
+consume_only=false
+if [[ "$1" == "--consume-only" ]]; then
+    consume_only=true
+    shift
+fi
 
 action="$1"
 consumer_group="$2"
@@ -191,25 +200,27 @@ elif [[ "$action" == "compare" ]]; then
         fi
 
         # Color code consumed messages and add diagnostics
-        if [[ $consumed -gt 0 ]]; then
-            printf "${GREEN}%-15s${NC}" "+$consumed"
-            if [[ $consumed -gt $produced ]]; then
-                printf " ${MAGENTA}⚠ Consumed more than produced!${NC}"
-                has_duplicate_read=1
-            elif [[ $consumed -lt $produced ]]; then
-                printf " ${YELLOW}⚠ Not all produced messages consumed${NC}"
+        if [[ $consume_only == false ]]; then
+            if [[ $consumed -gt 0 ]]; then
+                printf "${GREEN}%-15s${NC}" "+$consumed"
+                if [[ $consumed -gt $produced ]]; then
+                    printf " ${MAGENTA}⚠ Consumed more than produced!${NC}"
+                    has_duplicate_read=1
+                elif [[ $consumed -lt $produced ]]; then
+                    printf " ${YELLOW}⚠ Not all produced messages consumed${NC}"
+                    has_consumer_issue=1
+                fi
+            elif [[ $consumed -eq 0 ]]; then
+                printf "${YELLOW}%-15s${NC}" "0"
+                if [[ $produced -gt 0 ]]; then
+                    printf " ${RED}✗ Messages produced but not consumed${NC}"
+                    has_consumer_issue=1
+                fi
+            else
+                printf "${RED}%-15s${NC}" "$consumed"
+                printf " ${RED}✗ Negative consumption (offset reset?)${NC}"
                 has_consumer_issue=1
             fi
-        elif [[ $consumed -eq 0 ]]; then
-            printf "${YELLOW}%-15s${NC}" "0"
-            if [[ $produced -gt 0 ]]; then
-                printf " ${RED}✗ Messages produced but not consumed${NC}"
-                has_consumer_issue=1
-            fi
-        else
-            printf "${RED}%-15s${NC}" "$consumed"
-            printf " ${RED}✗ Negative consumption (offset reset?)${NC}"
-            has_consumer_issue=1
         fi
         echo ""
 
@@ -250,20 +261,22 @@ elif [[ "$action" == "compare" ]]; then
     echo "Overall Summary:"
     echo "========================================"
 
-    if [[ total_produced -eq $expected_count ]] && [[ -n "$expected_count" ]]; then
-      echo -e "Messages Produced (by producer): ${GREEN}${total_produced}${NC}"
-    elif [[ total_produced -gt $expected_count ]] && [[ -n "$expected_count" ]]; then
-      echo -e "Messages Produced (by producer): ${YELLOW}${total_produced}${NC}"
-    else
-      echo -e "Messages Produced (by producer): ${RED}${total_produced}${NC}"
+    if [[ $consume_only == false ]]; then
+        if [[ total_produced -eq $expected_count ]] && [[ -n "$expected_count" ]]; then
+            echo -e "Messages Produced (by producer): ${GREEN}${total_produced}${NC}"
+        elif [[ total_produced -gt $expected_count ]] && [[ -n "$expected_count" ]]; then
+            echo -e "Messages Produced (by producer): ${YELLOW}${total_produced}${NC}"
+        else
+          echo -e "Messages Produced (by producer): ${RED}${total_produced}${NC}"
+        fi
     fi
 
     if [[ $total_consumed -eq $expected_count ]] && [[ -n "$expected_count" ]]; then
-      echo -e "Messages Consumed (by consumer): ${GREEN}${total_consumed}${NC}"
+        echo -e "Messages Consumed (by consumer): ${GREEN}${total_consumed}${NC}"
     elif [[ $total_consumed -gt $expected_count ]] && [[ -n "$expected_count" ]]; then
-      echo -e "Messages Consumed (by consumer): ${YELLOW}${total_consumed}${NC}"
+        echo -e "Messages Consumed (by consumer): ${YELLOW}${total_consumed}${NC}"
     else
-      echo -e "Messages Consumed (by consumer): ${RED}${total_consumed}${NC}"
+        echo -e "Messages Consumed (by consumer): ${RED}${total_consumed}${NC}"
     fi
     echo "Partitions Monitored: $partition_count"
 
@@ -277,40 +290,53 @@ elif [[ "$action" == "compare" ]]; then
     echo "Diagnostic Summary:"
     echo "========================================"
 
-    if [[ $total_produced -eq 0 ]]; then
-        echo -e "${RED}✗ PRODUCER ISSUE: No messages were produced to the topic${NC}"
-        echo "  → Check if your producer is running and configured correctly"
-        has_producer_issue=1
-    elif [[ $total_produced -gt 0 ]]; then
-        echo -e "${GREEN}✓ Producer working: $total_produced messages produced${NC}"
-    fi
+    if [[ $consume_only == false ]]; then
+        if [[ $total_produced -eq 0 ]]; then
+            echo -e "${RED}✗ PRODUCER ISSUE: No messages were produced to the topic${NC}"
+            echo "  → Check if your producer is running and configured correctly"
+            has_producer_issue=1
+      elif [[ $total_produced -gt 0 ]]; then
+           echo -e "${GREEN}✓ Producer working: $total_produced messages produced${NC}"
+      fi
 
-    if [[ $total_consumed -eq 0 ]] && [[ $total_produced -gt 0 ]]; then
-        echo -e "${RED}✗ CONSUMER ISSUE: Messages were produced but not consumed${NC}"
-        echo "  → Check if your consumer is running and configured correctly"
-        echo "  → Verify consumer group name and topic subscription"
-        has_consumer_issue=1
-    elif [[ $total_consumed -lt $total_produced ]]; then
-        diff=$((total_produced - total_consumed))
-        echo -e "${YELLOW}⚠ CONSUMER ISSUE: Consumer is lagging behind${NC}"
-        echo "  → $diff messages produced but not yet consumed"
-        echo "  → Consumer may be slow or not processing all messages"
-        has_consumer_issue=1
-    elif [[ $total_consumed -gt $total_produced ]]; then
-        diff=$((total_consumed - total_produced))
-        echo -e "${MAGENTA}⚠ CONSUMER ISSUE: Consumer read more than produced${NC}"
-        echo "  → Consumer read $diff more messages than were produced in this period"
-        echo "  → This may indicate duplicate processing or offset management issues"
-        has_duplicate_read=1
-    elif [[ $total_consumed -eq $total_produced ]] && [[ $total_consumed -gt 0 ]]; then
-        echo -e "${GREEN}✓ Consumer working: All produced messages were consumed${NC}"
+      if [[ $total_consumed -eq 0 ]] && [[ $total_produced -gt 0 ]]; then
+           echo -e "${RED}✗ CONSUMER ISSUE: Messages were produced but not consumed${NC}"
+           echo "  → Check if your consumer is running and configured correctly"
+           echo "  → Verify consumer group name and topic subscription"
+          has_consumer_issue=1
+      elif [[ $total_consumed -lt $total_produced ]]; then
+          diff=$((total_produced - total_consumed))
+           echo -e "${YELLOW}⚠ CONSUMER ISSUE: Consumer is lagging behind${NC}"
+           echo "  → $diff messages produced but not yet consumed"
+           echo "  → Consumer may be slow or not processing all messages"
+          has_consumer_issue=1
+      elif [[ $total_consumed -gt $total_produced ]]; then
+          diff=$((total_consumed - total_produced))
+          echo -e "${MAGENTA}⚠ CONSUMER ISSUE: Consumer read more than produced${NC}"
+          echo "  → Consumer read $diff more messages than were produced in this period"
+          echo "  → This may indicate duplicate processing or offset management issues"
+          has_duplicate_read=1
+      elif [[ $total_consumed -eq $total_produced ]] && [[ $total_consumed -gt 0 ]]; then
+          echo -e "${GREEN}✓ Consumer working: All produced messages were consumed${NC}"
+      fi
+    else
+        if [[ $total_consumed -eq $expected_count ]]; then
+            echo -e "${GREEN}✓ Consumer working: All produced messages were consumed${NC}"
+        elif [[ $total_consumed -lt $expected_count ]]; then
+            diff=$((expected_count - total_consumed))
+            echo -e "${RED}✗ CONSUMER ISSUE: Consumer only consumed $total_consumed messages (expected $expected_count)${NC}"
+        else
+            diff=$((total_consumed - expected_count))
+            echo -e "${YELLOW}⚠ CONSUMER ISSUE: Consumer consumed $diff more messages than expected${NC}"
+            echo "  → This may indicate duplicate processing or offset management issues"
+        fi
     fi
 
     echo "========================================"
     echo ""
 
     # Final verdict based on expected count
-    if [[ -n "$expected_count" ]]; then
+    if [[ $consume_only == false && -n "$expected_count" ]]; then
         if [[ $total_consumed -eq $expected_count ]] && [[ $total_produced -eq $expected_count ]]; then
             echo -e "${GREEN}✓ SUCCESS: Produced and consumed exactly $expected_count messages!${NC}"
             exit 0
@@ -325,7 +351,7 @@ elif [[ "$action" == "compare" ]]; then
             if [[ $total_produced -eq $expected_count ]]; then
                 echo -e "${RED}  Producer worked correctly - CONSUMER ISSUE${NC}"
             else
-                echo -e "${RED}  Missing $diff messages - check both producer and consumer${NC}"
+              echo -e "${RED}  Missing $diff messages - check both producer and consumer${NC}"
             fi
             exit 1
         else
@@ -364,4 +390,3 @@ else
     echo "Use 'capture' or 'compare'"
     exit 1
 fi
-
