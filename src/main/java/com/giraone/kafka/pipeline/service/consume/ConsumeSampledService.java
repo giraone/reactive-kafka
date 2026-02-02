@@ -35,7 +35,6 @@ public class ConsumeSampledService extends AbstractConsumeService {
             .flatMap(partitionFlux ->
                 partitionFlux
                     .flatMapSequential(this::process)
-                    .doOnNext(this::logProcessed)
                     // Commit the processed records periodically
                     .sample(Duration.ofMillis(250L))
                     .onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, BufferOverflowStrategy.DROP_OLDEST)
