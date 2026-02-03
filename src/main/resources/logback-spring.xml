@@ -3,7 +3,7 @@
 
   <springProfile name="default">
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
-    <property name="CONSOLE_LOG_PATTERN" value="%d %-5level [%40t] %msg%n%throwable"/>
+    <property name="CONSOLE_LOG_PATTERN" value="%d %-5level [%-40.40thread] %-30.30logger{0} %msg%n%throwable"/>
   </springProfile>
 
   <springProfile name="docker">
