@@ -24,8 +24,8 @@ services:
       SPRING_APPLICATION_NAME: consume
       SPRING_KAFKA_CLIENT_ID: consume
       SPRING_KAFKA_CONSUMER_GROUP_ID: ConsumeDefault-1
-      APPLICATION_MODE: ConsumeSampled # ConsumeDefault or ConsumeSampled
-      APPLICATION_CONSUMER_ACKNOWLEDGEMENT_QUEUE_MODE: COMPACT # must be COMPACT for ConsumeSampled, STRICT otherwise
+      APPLICATION_MODE: ConsumeDefault # ConsumeDefault or ConsumeSampled
+      APPLICATION_CONSUMER_ACKNOWLEDGEMENT_QUEUE_MODE: STRICT # we always use STRICT (even with ConsumeSampled)
       APPLICATION_TOPIC_B: a1
       APPLICATION_PROCESSING_WAIT_TIME: 10ms # Simulate processing time
       APPLICATION_LOG_RATE: 10ms # Log processing rates every 100ms
