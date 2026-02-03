@@ -56,6 +56,8 @@ public abstract class AbstractConsumeService extends AbstractService {
     protected Mono<ReceiverRecord<String, String>> process(ReceiverRecord<String, String> inputRecord) {
         return Mono.delay(this.delay)
             .map(result -> coreProcess(inputRecord))
+            .doOnError(throwable -> LOGGER.error("Error processing record from topic \"{}\" with key={}",
+                inputRecord.topic(), inputRecord.key(), throwable))
             .doOnNext(this::logProcessed);
     }
 

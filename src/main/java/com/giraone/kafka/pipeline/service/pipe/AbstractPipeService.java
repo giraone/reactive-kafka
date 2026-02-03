@@ -55,6 +55,8 @@ public abstract class AbstractPipeService extends AbstractService {
     protected Mono<SenderRecord<String, String, ReceiverRecord<String, String>>> process(ReceiverRecord<String, String> inputRecord) {
         return Mono.delay(this.delay)
             .map(ignored -> coreProcess(inputRecord.value()))
+            .doOnError(throwable -> LOGGER.error("Error processing record from topic \"{}\" with key={}",
+                inputRecord.topic(), inputRecord.key(), throwable))
             .doOnNext(ignored -> this.logProcessed(inputRecord))
             // pass KafkaReceiverRecord as correlation metadata to KafkaSenderRecord to be able to commit later
             .map(outputValue -> SenderRecord.create(new ProducerRecord<>(getTopicOutput(), inputRecord.key(), outputValue), inputRecord));
