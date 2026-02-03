@@ -31,11 +31,10 @@ Hints:
 
 - Most important difference is **Atleon-Kafka**'s **acknowledge/commit behaviour**.
   As the documentation of [KafkaReceiver](https://github.com/atleon/atleon/blob/506ff4c4ead7ac8bae6521ac7058a6a7f489efaf/infrastructures/kafka/src/main/java/io/atleon/kafka/KafkaReceiver.java#L21-L28)
-  it will only make any given record's offset available for commitment if/when that record and all the records that came before it in the same actively
-  assigned partition have been acknowledged. It is therefore important that **every emitted record** be either positively acknowledged when its
-  processing completes normally, or negatively acknowledged ("nacknowledged").
-- So Flux pipelines with operators, that discard records (e.g. via `sample()`) need to
-  **acknowledge those discarded records** e.g. using [flux.doOnDiscard(KafkaReceiverRecord.class, KafkaReceiverRecord::acknowledge)](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html#doOnDiscard-java.lang.Class-java.util.function.Consumer-)
+  states, it will only make any given record's offset available for commitment if/when that record and all the records that came before it in the same actively
+  assigned partition **have been acknowledged**. It is therefore important that **every emitted record** be either positively or negatively acknowledged.
+- So Flux pipelines with operators, that discard records, e.g. via `sample()`, need to
+  **acknowledge those discarded records**, e.g. using [flux.doOnDiscard(KafkaReceiverRecord.class, KafkaReceiverRecord::acknowledge)](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html#doOnDiscard-java.lang.Class-java.util.function.Consumer-),
   to avoid blocking the commit of subsequent records in the same partition.
     
 
