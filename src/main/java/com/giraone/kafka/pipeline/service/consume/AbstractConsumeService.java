@@ -60,6 +60,11 @@ public abstract class AbstractConsumeService extends AbstractService {
     protected Mono<KafkaReceiverRecord<String, String>> process(KafkaReceiverRecord<String, String> inputRecord) {
         return Mono.delay(this.delay)
             .map(result -> coreProcess(inputRecord))
+            .doOnError(throwable -> {
+                LOGGER.error("Error processing record from topic \"{}\" with key={}",
+                    inputRecord.topicPartition().topic(), inputRecord.key(), throwable);
+                inputRecord.nacknowledge(throwable);
+            })
             .doOnNext(this::logProcessed);
     }
 
@@ -81,9 +86,9 @@ public abstract class AbstractConsumeService extends AbstractService {
      * @return empty Mono
      */
     protected Mono<Void> manualCommit(KafkaReceiverRecord<String, String> receiverRecord) {
-        receiverRecord.acknowledge();
-        logCommited(receiverRecord);
-        return Mono.empty();
+        return Mono.fromRunnable(receiverRecord::acknowledge)
+            .doOnSuccess(unused -> logCommited(receiverRecord))
+            .doOnError(this::logCommitError).then();
     }
 
     /**
