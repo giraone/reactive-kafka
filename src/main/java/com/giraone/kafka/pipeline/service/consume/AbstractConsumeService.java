@@ -75,9 +75,24 @@ public abstract class AbstractConsumeService extends AbstractService {
         return receiverRecord;
     }
 
+    /**
+     * Commit the given record manually.
+     * @param receiverRecord record to commit
+     * @return empty Mono
+     */
     protected Mono<Void> manualCommit(KafkaReceiverRecord<String, String> receiverRecord) {
-        return Mono.fromRunnable(receiverRecord::acknowledge) // commit vs. acknowledge
-            .doOnSuccess(unused -> logCommited(receiverRecord))
-            .doOnError(this::logCommitError).then();
+        receiverRecord.acknowledge();
+        logCommited(receiverRecord);
+        return Mono.empty();
+    }
+
+    /**
+     * Commit the given record manually. Identical to manualCommit, but for discarded records.
+     * will provide a different log entry.
+     * @param receiverRecord record to commit
+     */
+    protected void onDiscardCommit(KafkaReceiverRecord<String, String> receiverRecord) {
+        receiverRecord.acknowledge();
+        logDiscardCommited(receiverRecord);
     }
 }

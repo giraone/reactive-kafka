@@ -95,6 +95,14 @@ public abstract class AbstractService implements CommandLineRunner {
         LOGGER.debug("### {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
     }
 
+    protected void logDiscardCommited(KafkaReceiverRecord<String, String> receiverRecord) {
+        final ConsumerRecord<String, String> consumerRecord = receiverRecord.consumerRecord();
+        final int partition = consumerRecord.partition();
+        final long offset = consumerRecord.offset();
+        counterService.logRateCommittedOnDiscard(partition, offset);
+        LOGGER.debug("#!# {} {} {} {} {}", consumerRecord.topic(), partition, offset, consumerRecord.key(), consumerRecord.value());
+    }
+
     protected void logCommitError(Throwable throwable) {
         LOGGER.error("!!! Commit ERROR: {}: {}", throwable.getClass().getSimpleName(), throwable.getMessage());
     }

@@ -39,6 +39,7 @@ public class ConsumeSampledService extends AbstractConsumeService {
                     .sample(Duration.ofMillis(250L))
                     .onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, BufferOverflowStrategy.DROP_OLDEST)
                     .concatMap(this::manualCommit)
+                    .doOnDiscard(KafkaReceiverRecord.class, this::onDiscardCommit)
             );
     }
 }

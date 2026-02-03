@@ -30,6 +30,7 @@ public class CounterService {
     private final Counter counterReceived;
     private final Counter counterProcessed;
     private final Counter counterCommitted;
+    private final Counter counterCommittedOnDiscard;
 
     private final Counter counterError;
     private final Counter counterMainLoopStarted;
@@ -46,6 +47,8 @@ public class CounterService {
         this.counterReceived = registry.counter("pipeline.received");
         this.counterProcessed = registry.counter("pipeline.processed");
         this.counterCommitted = registry.counter("pipeline.committed");
+        this.counterCommittedOnDiscard = registry.counter("pipeline.committedOnDiscard");
+
 
         this.counterError = registry.counter("pipeline.error");
         this.counterMainLoopStarted = registry.counter("pipeline.loop.started");
@@ -65,6 +68,12 @@ public class CounterService {
     public void logRateCommitted(int partition, long offset) {
         logRateInternal("CMMT", partition, offset);
         counterCommitted.increment();
+    }
+
+    public void logRateCommittedOnDiscard(int partition, long offset) {
+        logRateInternal("CMM*", partition, offset);
+        counterCommitted.increment();
+        counterCommittedOnDiscard.increment();
     }
 
     public void logRateProduced() {
@@ -110,6 +119,11 @@ public class CounterService {
 
     public long getCounterCommitted() {
         return (long) this.counterCommitted.count();
+    }
+
+    @SuppressWarnings("unused") // Needed only for chains/pipelines that discard messages
+    public long getCounterCommittedOnDiscard() {
+        return (long) this.counterCommittedOnDiscard.count();
     }
 
     private void logRateInternal(String metric, int partition, long offset) {
