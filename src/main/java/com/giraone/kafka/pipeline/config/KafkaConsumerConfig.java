@@ -6,7 +6,6 @@ import io.atleon.core.AcknowledgementQueueMode;
 import io.atleon.kafka.KafkaReceiver;
 import io.atleon.kafka.KafkaReceiverOptions;
 import io.atleon.kafka.ReactiveAdmin;
-import io.atleon.micrometer.AloKafkaMetricsReporter;
 import org.apache.kafka.clients.consumer.StickyAssignor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +62,7 @@ public class KafkaConsumerConfig {
                 : DEFAULT_FETCH_MAX_WAIT_MS
             )
             // Metrics reporter - we want default Kafka metrics
-            .consumerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());
+            .consumerProperty(METRIC_REPORTER_CLASSES_CONFIG, ReactorKafkaMetricsExporter.class.getName());
 
         if (springKafkaProperties.getJaas().isEnabled()) {
             final SpringKafkaProperties.Properties properties = springKafkaProperties.getProperties();

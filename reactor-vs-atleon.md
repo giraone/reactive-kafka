@@ -9,6 +9,7 @@ Hints:
 - To keep the configuration **as-is** without re-using *Spring-Kafka* dependency, the configuration was partially rebuild using a
   [SpringKafkaProperties.java](src/main/java/com/giraone/kafka/pipeline/config/properties/SpringKafkaProperties.java) class.
 
+
 | Context                        | reactor-kafka                                                                   | atleon-kafka                                                                                                      | Comment                                                                                                   |
 |:-------------------------------|:--------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------|
 | Maven GAV                      | `io.projectreactor.kafka:reactor-kafka:1.3.24`                                  | `io.atleon:atleon-kafka:0.37.0`                                                                                   |                                                                                                           |
@@ -23,9 +24,39 @@ Hints:
 | ReceiverOptions                | `ReceiverOptions<K, V> create(Map<String, Object> properties)`                  | `KafkaReceiverOptions.<K,V>newBuilder(). ... .build()`                                                            |                                                                                                           |
 | receive method                 | `reactiveKafkaConsumerTemplate.receive()`                                       | `kafkaReceiver.receiveManual(topic)`                                                                              | receiveManual needs topic(s) as parameter                                                                 |
 | fetch partition count          | `reactiveKafkaProducerTemplate.partitionsFromProducerFor(String topic)`         | No counter part in Producer API.                                                                                  | Atleon has only `ReactiveAdmin.listTopicPartitions(List<String>)` from Admin API.                         |
-| Metrics Producer               | `SenderOptions.producerListener(new MicrometerProducerListener(meterRegistry))` | `KafkaReceiverOptions.producerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());` |                                                                                                           |                                                                                                     | Different setup                                                                                      |
-| Metrics Consumer               | `SenderOptions.consumerListener(new MicrometerConsumerListener(meterRegistry))` | `KafkaReceiverOptions.consumerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());` | Different setup                                                                                           |
+| Metrics Producer               | `SenderOptions.producerListener(new MicrometerProducerListener(meterRegistry))` | `KafkaReceiverOptions.producerProperty(METRIC_REPORTER_CLASSES_CONFIG, ReactorKafkaMetricsExporter.class.getName());` |                                                                                                           |                                                                                                     | Different setup                                                                                      |
+| Metrics Consumer               | `SenderOptions.consumerListener(new MicrometerConsumerListener(meterRegistry))` | `KafkaReceiverOptions.consumerProperty(METRIC_REPORTER_CLASSES_CONFIG, ReactorKafkaMetricsExporter.class.getName());` | Different setup                                                                                           |
 | acknowledge/commit             | `kafkaSenderResult.correlationMetadata().acknowledge()`                         | `senderResult.correlationMetadata().receiverOffset().commit()`                                                    | **Important:** Using Atleon, every emitted record has acknowledged.                                       |                                                                                                      |
+| Sonar Findings (High/Medium)   | 8 in 3 files / 31 in 14 files                                                   | 4 in 3 files / 28 in 12 file                                                                                      | For Atleon only *infrastructure/kafka* was checked                                                        |
+
+## Metrics
+
+For a 1:1 migration from *reactor-kafka* to *atleon-kafka*, the `AloKafkaMetricsReporter.class` cannot be used, because it uses a different naming strategy, e.g.:
+
+This is addressed and answered in [this discussion on GitHub](https://github.com/orgs/atleon/discussions/483).
+
+- *reactor-kafka*: `kafka.consumer.connection.count
+- *atleon-kafka/atleon-micrometer*: `kafka.consumer-metrics.connection-count`
+
+But it can be easily adapted by using a derived class as shown below:
+
+```java
+/**
+ * Replicates metric formats provided by legacy reactor-kafka implementation
+ */
+public class ReactorKafkaMetricsExporter extends AbstractKafkaMetricsReporter {
+
+    @Override
+    protected String extractMetricName(KafkaMetric metric) {
+        return removeUpToLastAndIncluding(metric.metricName().name(), '.');
+    }
+
+    @Override
+    protected String extractMeterNamePrefix(KafkaMetric metric) {
+        return super.extractMeterNamePrefix(metric).replace("-metrics", "");
+    }
+}
+```
 
 ## Notes
 

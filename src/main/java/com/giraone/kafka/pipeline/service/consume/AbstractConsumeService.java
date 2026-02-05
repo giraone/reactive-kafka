@@ -88,7 +88,8 @@ public abstract class AbstractConsumeService extends AbstractService {
     protected Mono<Void> manualCommit(KafkaReceiverRecord<String, String> receiverRecord) {
         return Mono.fromRunnable(receiverRecord::acknowledge)
             .doOnSuccess(unused -> logCommited(receiverRecord))
-            .doOnError(this::logCommitError).then();
+            .doOnError(this::logCommitError)
+            .then();
     }
 
     /**

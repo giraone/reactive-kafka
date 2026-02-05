@@ -16,19 +16,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Example:
  * <code>
  * spring:
- * kafka:
- * bootstrap-servers: 'localhost:9991,localhost:9992,localhost:9993,localhost:9994,localhost:9995,localhost:9996'
- * client-id: 'my-client-id'
- * consumer:
- * group-id: 'my-group-id'
- * jaas:
- * enabled: true
- * security:
- * protocol: SASL_PLAINTEXT
- * properties:
- * sasl:
- * mechanism: SCRAM-SHA-512
- * jaas-config: org.apache.kafka.common.security.scram.ScramLoginModule required username='user' password='secret';
+ *   kafka:
+ *     bootstrap-servers: 'localhost:9991,localhost:9992,localhost:9993,localhost:9994,localhost:9995,localhost:9996'
+ *     client-id: 'my-client-id'
+ *     consumer:
+ *       group-id: 'my-group-id'
+ *     jaas:
+ *       enabled: true
+ *     security:
+ *       protocol: SASL_PLAINTEXT
+ *     properties:
+ *       sasl:
+ *         mechanism: SCRAM-SHA-512
+ *         jaas-config: org.apache.kafka.common.security.scram.ScramLoginModule required username='user' password='secret';
  * </code>
  */
 @ConfigurationProperties(prefix = "spring.kafka")

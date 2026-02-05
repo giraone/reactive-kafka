@@ -3,7 +3,6 @@ package com.giraone.kafka.pipeline.config;
 import com.giraone.kafka.pipeline.config.properties.SpringKafkaProperties;
 import io.atleon.kafka.KafkaSender;
 import io.atleon.kafka.KafkaSenderOptions;
-import io.atleon.micrometer.AloKafkaMetricsReporter;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,7 @@ public class KafkaProducerConfig {
                 : 16384
             )
             // Metrics reporter
-            .producerProperty(METRIC_REPORTER_CLASSES_CONFIG, AloKafkaMetricsReporter.class.getName());
+            .producerProperty(METRIC_REPORTER_CLASSES_CONFIG, ReactorKafkaMetricsExporter.class.getName());
 
         if (springKafkaProperties.getJaas().isEnabled()) {
             final SpringKafkaProperties.Properties properties = springKafkaProperties.getProperties();
