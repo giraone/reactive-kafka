@@ -6,7 +6,7 @@ import io.atleon.core.AcknowledgementQueueMode;
 import io.atleon.kafka.KafkaReceiver;
 import io.atleon.kafka.KafkaReceiverOptions;
 import io.atleon.kafka.ReactiveAdmin;
-import org.apache.kafka.clients.consumer.StickyAssignor;
+import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -36,8 +36,8 @@ public class KafkaConsumerConfig {
             .consumerProperty(BOOTSTRAP_SERVERS_CONFIG, springKafkaProperties.getBootstrapServers())
             .consumerProperty(CLIENT_ID_CONFIG, springKafkaProperties.buildClientId())
             .consumerProperty(GROUP_ID_CONFIG, springKafkaProperties.getConsumer().getGroupId())
-            // StickyAssignor is best practice and our default
-            .consumerProperty(PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName())
+            // CooperativeStickyAssignor is best practice and our default
+            .consumerProperty(PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName())
             .consumerProperty(KEY_DESERIALIZER_CLASS_CONFIG, springConsumerProperties.getKeyDeserializer() != null
                 ? springConsumerProperties.getKeyDeserializer().getName()
                 : org.apache.kafka.common.serialization.StringDeserializer.class.getName()
