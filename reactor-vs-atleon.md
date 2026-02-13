@@ -35,7 +35,7 @@ For a 1:1 migration from *reactor-kafka* to *atleon-kafka*, the `AloKafkaMetrics
 
 This is addressed and answered in [this discussion on GitHub](https://github.com/orgs/atleon/discussions/483).
 
-- *reactor-kafka*: `kafka.consumer.connection.count
+- *reactor-kafka*: `kafka.consumer.connection.count`
 - *atleon-kafka/atleon-micrometer*: `kafka.consumer-metrics.connection-count`
 
 But it can be easily adapted by using a derived class as shown below:
